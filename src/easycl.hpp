@@ -8,8 +8,8 @@ namespace ecl {
 	class ErrorObject {
 	protected:
 		std::vector<std::string> error; // вектор ошибок
-		int error_code; // код последней ошибки
-		bool has_error; // содержит ли вектор ошибок ошибки (сообщение ok не считается за ошибку)
+                int error_code = 0; // код последней ошибки
+                bool has_error = false; // содержит ли вектор ошибок ошибки (сообщение ok не считается за ошибку)
 	public:
 		void setError(std::string error);
 		// разместить сообщение об ошибке в вектор ошибок
