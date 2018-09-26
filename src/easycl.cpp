@@ -1,9 +1,16 @@
 #include "easycl.hpp"
 
+void ecl::ErrorObject::generateError(){
+    size_t size = error_vector.size();
+    error = "";
+    for (size_t i(0); i < size; i++) if (error_vector.at(i) != "ok") error += error_vector.at(i) + (i < size - 1 ? "\n" : "");
+    if (error == "") error = "ok";
+}
 void ecl::ErrorObject::setError(std::string error)
 {
 	if (error != "ok") has_error = true;
-	this->error.push_back(error);
+    this->error_vector.push_back(error);
+    this->generateError();
 }
 int ecl::ErrorObject::getErrorCode()
 {
@@ -11,32 +18,37 @@ int ecl::ErrorObject::getErrorCode()
 }
 void ecl::ErrorObject::clearErrors()
 {
-	error.clear();
+    error_vector.clear();
 }
-std::string ecl::ErrorObject::getError()
+std::string& ecl::ErrorObject::getError()
 {
-	size_t size = error.size();
-	std::string temp = "";
-	for (size_t i(0); i < size; i++) if (error.at(i) != "ok") temp += error.at(i) + (i < size - 1 ? "\n" : "");
-	if (temp == "") temp = "ok";
-	return temp;
+    return error;
 }
 std::vector<std::string>& ecl::ErrorObject::getErrorVector()
 {
-	return error;
+    return error_vector;
 }
 bool ecl::ErrorObject::HasError()
 {
 	return has_error;
 }
 
-std::vector<std::string> ecl::SharedErrorObject::shared_error;
+std::vector<std::string> ecl::SharedErrorObject::shared_error_vector;
+std::string ecl::SharedErrorObject::shared_error = "";
 int ecl::SharedErrorObject::shared_error_code = 0;
 bool ecl::SharedErrorObject::has_shared_error = false;
 void ecl::SharedErrorObject::setSharedError(std::string error)
 {
 	if (error != "ok") has_shared_error = true;
-	shared_error.push_back(error);
+    shared_error_vector.push_back(error);
+    generateSharedError();
+}
+
+void ecl::SharedErrorObject::generateSharedError(){
+    size_t size = shared_error_vector.size();
+    shared_error = "";
+    for (size_t i(0); i < size; i++) if (shared_error_vector.at(i) != "ok") shared_error += shared_error_vector.at(i) + (i < size - 1 ? "\n" : "");
+    if (shared_error == "") shared_error = "ok";
 }
 int ecl::SharedErrorObject::getSharedErrorCode()
 {
@@ -45,19 +57,15 @@ int ecl::SharedErrorObject::getSharedErrorCode()
 }
 void ecl::SharedErrorObject::clearSharedErrors()
 {
-	shared_error.clear();
+    shared_error_vector.clear();
 }
-std::string ecl::SharedErrorObject::getSharedError()
+std::string& ecl::SharedErrorObject::getSharedError()
 {
-	size_t size = shared_error.size();
-	std::string temp = "";
-	for (size_t i(0); i < size; i++) if (shared_error.at(i) != "ok") temp += shared_error.at(i) + (i < size - 1 ? "\n" : "");
-	if (temp == "") temp = "ok";
-	return temp;
+    return shared_error;
 }
 std::vector<std::string>& ecl::SharedErrorObject::getSharedErrorVector()
 {
-	return shared_error;
+    return shared_error_vector;
 }
 bool ecl::SharedErrorObject::HasSharedError()
 {
@@ -70,8 +78,7 @@ ecl::Error::Error(std::string prefix)
 }
 bool ecl::Error::checkError(ErrorObject* obj)
 {
-	std::string temp;
-	temp = getError(obj->getErrorCode());
+    std::string temp = getError(obj->getErrorCode());
 	if (temp != "ok") {
 		obj->setError(prefix + temp);
 		return true;
@@ -120,7 +127,7 @@ cl_platform_id* ecl::Platform::platforms;
 cl_uint* ecl::Platform::devices_count;
 cl_device_id** ecl::Platform::devices;
 bool ecl::Platform::initialized = false;
-std::string ecl::Platform::init(cl_device_type type)
+std::string& ecl::Platform::init(cl_device_type type)
 {
 
 	if (initialized) {
@@ -161,7 +168,7 @@ cl_device_id* ecl::Platform::getDevice(size_t platform_i, size_t i)
 }
 
 ecl::CLError::CLError(std::string prefix) : Error(prefix) {}
-std::string ecl::CLError::getError(int error)
+const char* ecl::CLError::getError(int error)
 {
 	switch (error)
 	{
@@ -367,7 +374,7 @@ std::string ecl::CLError::getError(int error)
 }
 
 ecl::GPGPUError::GPGPUError(std::string prefix) : Error(prefix) {}
-std::string ecl::GPGPUError::getError(int error) {
+const char* ecl::GPGPUError::getError(int error) {
 	switch (error) {
 	case 0:
 		return "ok";
@@ -398,7 +405,7 @@ ecl::GPU::GPU(size_t platform_index, size_t device_index)
 	queue = clCreateCommandQueue(context, *device, 0, &error_code);
 	if (CreateQueueError.checkError(this)) throw;
 }
-std::string ecl::GPU::sendData(const std::vector<GPUArgument*>& args)
+std::string& ecl::GPU::sendData(const std::vector<GPUArgument*>& args)
 {
 	for (size_t i(0); i < args.size(); i++) {
 		setError(args.at(i)->checkBuffer(&context));
@@ -409,7 +416,7 @@ std::string ecl::GPU::sendData(const std::vector<GPUArgument*>& args)
 	}
 	return getError();
 }
-std::string ecl::GPU::compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size, size_t dim)
+std::string& ecl::GPU::compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size)
 {
 	setError(prog->checkProgram(&context, device));
 	if (has_error) return getError();
@@ -425,14 +432,14 @@ std::string ecl::GPU::compute(GPUProgram* prog, GPUFunction* func, const std::ve
 		if (SetKernelArgError.checkError(this)) return getError();
 	}
 
-	error_code = clEnqueueNDRangeKernel(queue, *func->getFunction(prog->getProgram(&context)), dim, nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
+    error_code = clEnqueueNDRangeKernel(queue, *func->getFunction(prog->getProgram(&context)), global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
 	ExecuteError.checkError(this);
 
-	clFinish(queue);
+    clFinish(queue);
 
 	return getError();
 }
-std::string ecl::GPU::receiveData(const std::vector<GPUArgument*>& args)
+std::string& ecl::GPU::receiveData(const std::vector<GPUArgument*>& args)
 {
 	for (size_t i(0); i < args.size(); i++) {
 		setError(args.at(i)->checkBuffer(&context));
@@ -450,15 +457,14 @@ ecl::GPU::~GPU()
 	clReleaseCommandQueue(queue);
 }
 
-std::string ecl::GPUProgram::getBuildError(cl_context* context, cl_device_id* device)
+const char* ecl::GPUProgram::getBuildError(cl_context* context, cl_device_id* device)
 {
-	size_t err_size;
+    size_t err_size;
 	clGetProgramBuildInfo(program.at(context), *device, CL_PROGRAM_BUILD_LOG, 0, nullptr,
 		&err_size);
-	char* err_str = new char[err_size];
-	clGetProgramBuildInfo(program.at(context), *device, CL_PROGRAM_BUILD_LOG, err_size, err_str, 0);
+    char* result = new char[err_size];
+    clGetProgramBuildInfo(program.at(context), *device, CL_PROGRAM_BUILD_LOG, err_size, result, 0);
 
-	std::string result(err_str, err_size);
 	return result;
 }
 ecl::GPUProgram::GPUProgram(const char* source, size_t length)
@@ -466,21 +472,21 @@ ecl::GPUProgram::GPUProgram(const char* source, size_t length)
 	this->program_source = source;
 	this->program_source_length = length;
 }
-std::string ecl::GPUProgram::checkProgram(cl_context* context, cl_device_id* device)
+ecl::GPUProgram::GPUProgram(const char* source){
+    this->program_source = source;
+    this->program_source_length = strlen(source);
+}
+std::string& ecl::GPUProgram::checkProgram(cl_context* context, cl_device_id* device)
 {
-	try {
-		program.at(context);
-	}
-	catch (std::exception e){
-		program.insert({context, clCreateProgramWithSource(*context, 1, (const char**)&program_source, (const size_t*)&program_source_length, &error_code)});
-		if(CreateProgramError.checkError(this)) return getError();
-		
-		error_code = clBuildProgram(program.at(context), 0, nullptr, nullptr, nullptr, nullptr);
-		if (BuildProgramError.checkError(this)) {
-			BuildProgramError.setError(this, getBuildError(context, device));
-			return getError();
-		}
-	}
+
+    if(program.find(context) == program.end()){
+        program.emplace(context, clCreateProgramWithSource(*context, 1, (const char**)&program_source, (const size_t*)&program_source_length, &error_code));
+        if(CreateProgramError.checkError(this)) return getError();
+
+        error_code = clBuildProgram(program.at(context), 0, nullptr, nullptr, nullptr, nullptr);
+        if (BuildProgramError.checkError(this)) BuildProgramError.setError(this, getBuildError(context, device));
+    }
+
 	return getError();
 }
 cl_program * ecl::GPUProgram::getProgram(cl_context * context)
@@ -501,15 +507,14 @@ ecl::GPUFunction::GPUFunction(const char* name)
 {
 	this->name = name;
 }
-std::string ecl::GPUFunction::checkKernel(cl_program* program)
+std::string& ecl::GPUFunction::checkKernel(cl_program* program)
 {
-	try {
-		function.at(program);
-	}
-	catch (std::exception e) {
-		function.insert({ program, clCreateKernel(*program, name, &error_code) });
-		if (CreateKernelError.checkError(this)) return getError();
-	}
+
+    if(function.find(program) == function.end()){
+        function.emplace(program, clCreateKernel(*program, name, &error_code));
+        CreateKernelError.checkError(this);
+    }
+
 	return getError();
 }
 cl_kernel* ecl::GPUFunction::getFunction(cl_program* program)
@@ -527,15 +532,14 @@ ecl::GPUArgument::GPUArgument(void* ptr, size_t arr_size, cl_mem_flags mem_type)
 	this->arr_size = arr_size;
 	this->mem_type = mem_type;
 }
-std::string ecl::GPUArgument::checkBuffer(cl_context* context)
+std::string& ecl::GPUArgument::checkBuffer(cl_context* context)
 {
-	try {
-		buffer.at(context);
-	}
-	catch (std::exception e) {
-		buffer.insert({context, clCreateBuffer(*context, mem_type, arr_size, nullptr, &error_code)});
-		if (CreateBufferError.checkError(this)) return getError();
-	}
+
+    if(buffer.find(context) == buffer.end()){
+        buffer.emplace(context, clCreateBuffer(*context, mem_type, arr_size, nullptr, &error_code));
+        CreateBufferError.checkError(this);
+    }
+
 	return getError();
 }
 void * ecl::GPUArgument::getPtr()
@@ -564,5 +568,5 @@ void ecl::GPUArgument::setMemType(cl_mem_flags mem_type)
 }
 ecl::GPUArgument::~GPUArgument()
 {
-	for (std::pair<cl_context*, cl_mem> p : buffer) clReleaseMemObject(p.second);
+    for (std::pair<cl_context*, cl_mem> p : buffer) clReleaseMemObject(p.second);
 }

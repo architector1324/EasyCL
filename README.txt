@@ -46,40 +46,67 @@ This is an abstraction of the program that can be executed on any device.
 using namespace std;
 using namespace ecl;
 
-int main(){
-	string src = "__kernel void add(__global float* a, __global float* b, __global float* result) {"
-		"    size_t i = get_global_id(0);"
-		"    result[i] = a[i] + b[i];"
-		"}";
+int main()
+{
+    GPUProgram program = "__kernel void test(__global float* a) {"
+                "a[get_global_id(0)] += (float)get_global_id(0);"
+                "}";
+    GPUFunction test = "test";
 
-	GPU video(0, 0);
-	cout << video.getError() << endl;
+    float A[5] = {0.0f};
+    GPUArgument a(A, 5 * sizeof(float));
 
-	float A[3] = { 1.0f, 2.0f, 3.0f };
-	float B[3] = {-0.5f, -0.5f, -0.5f};
-	float C[3];
+    GPU video(0, 1);
+    video.sendData({&a});
+    video.compute(&program, &test, {&a}, {5});
+    video.receiveData({&a});
 
-	GPUArgument a(A, 3 * sizeof(float), CL_MEM_READ_ONLY);
-	GPUArgument b(B, 3 * sizeof(float), CL_MEM_READ_ONLY);
-	GPUArgument c(C, 3 * sizeof(float), CL_MEM_READ_WRITE);
+    for(size_t i(0); i < 5; i++) cout << A[i] << " ";
+    cout << endl;
 
-	GPUFunction add("add");
-	GPUProgram program(src);
-	
-	// In fact, your program starts here
-
-	cout << video.sendData({&a, &b}) << endl;
-	cout << video.compute(&program, &add, {&a, &b, &c}, {3}, 1) << endl;
-	cout << video.receiveData({&c}) << endl;
-	
-	// ends here
-
-	for (size_t i(0); i < 3; i++) cout << C[i] << " ";
-	cout << endl;
-
-	return 0;
+    return 0;
 }
 
+
+-----------------Vector Adding------------------
+
+#include <iostream>
+#include "easycl.hpp"
+
+using namespace std;
+using namespace ecl;
+
+int main(){
+    GPUProgram program = "__kernel void add(__global float* a, __global float* b, __global float* result) {"
+        "    size_t i = get_global_id(0);"
+        "    result[i] = a[i] + b[i];"
+        "}";
+    GPUFunction add("add");
+
+    float A[3] = { 1.0f, 2.0f, 3.0f };
+    float B[3] = {-0.5f, -0.5f, -0.5f};
+    float C[3];
+
+    GPUArgument a(A, 3 * sizeof(float));
+    GPUArgument b(B, 3 * sizeof(float));
+    GPUArgument c(C, 3 * sizeof(float), CL_MEM_READ_WRITE);
+
+    GPU video(0, 0);
+    cout << video.getError() << endl;
+
+    // In fact, your program starts here
+
+    cout << video.sendData({&a, &b}) << endl;
+    cout << video.compute(&program, &add, {&a, &b, &c}, {3}) << endl;
+    cout << video.receiveData({&c}) << endl;
+
+    // ends here
+
+    for (size_t i(0); i < 3; i++) cout << C[i] << " ";
+    cout << endl;
+
+    return 0;
+}
 
 -----------------An example of level independence------------------
 
@@ -92,46 +119,45 @@ using namespace ecl;
 float A[5];
 
 void printA() {
-	for (size_t i(0); i < 5; i++) cout << A[i] << " ";
-	cout << endl;
+    for (size_t i(0); i < 5; i++) cout << A[i] << " ";
+    cout << endl;
 }
 
 int main()
 {
-	string src0 = "__kernel void test0(__global float* arr) {"
-		"    arr[get_global_id(0)] = 1.0f;"
-		"}"
-		"__kernel void test1(__global float* arr) {"
-		"    arr[get_global_id(0)] = 2.0f;"
-		"}";
+    GPUProgram program0 = "__kernel void test0(__global float* arr) {"
+        "    arr[get_global_id(0)] = 1.0f;"
+        "}"
+        "__kernel void test1(__global float* arr) {"
+        "    arr[get_global_id(0)] = 2.0f;"
+        "}";
 
-	string src1 = "__kernel void test0(__global float* arr) {"
-		"    arr[get_global_id(0)] = 3.0f;"
-		"}"
-		"__kernel void test1(__global float* arr) {"
-		"    arr[get_global_id(0)] = 4.0f;"
-		"}";
+    GPUProgram program1 = "__kernel void test0(__global float* arr) {"
+        "    arr[get_global_id(0)] = 3.0f;"
+        "}"
+        "__kernel void test1(__global float* arr) {"
+        "    arr[get_global_id(0)] = 4.0f;"
+        "}";
 
-	GPU video(0, 1);
-	cout << video.getError() << endl;
+    GPUFunction test0("test0"), test1("test1");
+    GPUArgument arr(A, 5 * sizeof(float));
 
-	GPUArgument arr(A, 5 * sizeof(float), CL_MEM_READ_WRITE);
-	GPUFunction test0("test0"), test1("test1");
-	GPUProgram program0(src0), program1(src1);
+    GPU video(0, 1);
+    cout << video.getError() << endl;
 
-	cout << video.compute(&program0, &test0, {&arr}, {5}, 1) << endl;
-	cout << video.receiveData({&arr}) << endl;
-	printA();
+    cout << video.compute(&program0, &test0, {&arr}, {5}) << endl;
+    cout << video.receiveData({&arr}) << endl;
+    printA();
 
-	cout << video.compute(&program0, &test1, {&arr}, {5}, 1) << endl;
-	cout << video.receiveData({&arr}) << endl;
-	printA();
+    cout << video.compute(&program0, &test1, {&arr}, {5}) << endl;
+    cout << video.receiveData({&arr}) << endl;
+    printA();
 
-	cout << video.compute(&program1, &test0, {&arr}, {5}, 1) << endl;
-	cout << video.receiveData({&arr}) << endl;
-	printA();
+    cout << video.compute(&program1, &test0, {&arr}, {5}) << endl;
+    cout << video.receiveData({&arr}) << endl;
+    printA();
 
-	cout << video.compute(&program1, &test1, {&arr}, {5}, 1) << endl;
-	cout << video.receiveData({&arr}) << endl;
-	printA();
+    cout << video.compute(&program1, &test1, {&arr}, {5}) << endl;
+    cout << video.receiveData({&arr}) << endl;
+    printA();
 }
