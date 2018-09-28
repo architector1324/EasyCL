@@ -95,8 +95,12 @@ namespace ecl {
         static std::string& init(cl_device_type type);
 		static bool Initialized(); // получить флаг инициализации
 
+        static void checkPlatform(size_t platform_index);
+        static void checkDevice(size_t platform_index, size_t device_index);
+
 		static cl_platform_id* getPlatform(size_t i); // получить платформу
 		static cl_device_id* getDevice(size_t platform_i, size_t i); // получить устройство
+        static cl_uint getPlatformsCount();
 
 		virtual void abstract() = 0; // данный класс является абстрактным
 	};
@@ -155,12 +159,14 @@ namespace ecl {
 		
 		cl_context context; // opencl контекст
 		cl_command_queue queue; // opencl очередь запросов
+        bool initialized = false; // флаг инициализации
 	public:
 		GPU(size_t platform_index, size_t device_index);
         std::string& sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
 		// выполнить программу на устройстве
         std::string& compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
         std::string& receiveData(const std::vector<GPUArgument*>& args); // получить данные с устройства
+
 		~GPU();
 	};
 }

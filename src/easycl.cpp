@@ -143,6 +143,22 @@ cl_platform_id* ecl::Platform::platforms;
 cl_uint* ecl::Platform::devices_count;
 cl_device_id** ecl::Platform::devices;
 bool ecl::Platform::initialized = false;
+void ecl::Platform::checkPlatform(size_t platform_index)
+{
+    if(platform_index >= platforms_count){
+        shared_error_code = CL_INVALID_PLATFORM;
+        PlatformInitError.checkSharedError();
+    }
+}
+void ecl::Platform::checkDevice(size_t platform_index, size_t device_index)
+{
+    checkPlatform(platform_index);
+    if(device_index >= devices_count[platform_index]){
+        shared_error_code = CL_INVALID_DEVICE;
+        DeviceInitError.checkSharedError();
+    }
+}
+
 std::string& ecl::Platform::init(cl_device_type type)
 {
 
@@ -180,8 +196,14 @@ cl_platform_id* ecl::Platform::getPlatform(size_t i)
 }
 cl_device_id* ecl::Platform::getDevice(size_t platform_i, size_t i)
 {
-	return devices[platform_i] + i;
+    return devices[platform_i] + i;
 }
+
+cl_uint ecl::Platform::getPlatformsCount()
+{
+    return platforms_count;
+}
+
 
 ecl::CLError::CLError(std::string prefix) : Error(prefix) {}
 const char* ecl::CLError::getError(int error)
@@ -410,16 +432,22 @@ const char* ecl::GPGPUError::getError(int error) {
 
 ecl::GPU::GPU(size_t platform_index, size_t device_index)
 {
+
 	if (!Platform::Initialized()) Platform::init(CL_DEVICE_TYPE_GPU);
-	if (Platform::HasSharedError()) setError(Platform::getSharedError());
+    Platform::checkDevice(platform_index, device_index);
+    if (Platform::HasSharedError()){
+        setError(Platform::getSharedError());
+    } else{
+        this->device = Platform::getDevice(platform_index, device_index);
 
-	this->device = Platform::getDevice(platform_index, device_index);
+        context = clCreateContext(nullptr, 1, device, nullptr, nullptr, &error_code);
+        if (CreateContextError.checkError(this)) throw;
 
-	context = clCreateContext(nullptr, 1, device, nullptr, nullptr, &error_code);
-	if (CreateContextError.checkError(this)) throw;
+        queue = clCreateCommandQueue(context, *device, 0, &error_code);
+        if (CreateQueueError.checkError(this)) throw;
 
-	queue = clCreateCommandQueue(context, *device, 0, &error_code);
-	if (CreateQueueError.checkError(this)) throw;
+        initialized = true;
+    }
 }
 std::string& ecl::GPU::sendData(const std::vector<GPUArgument*>& args)
 {
@@ -464,13 +492,16 @@ std::string& ecl::GPU::receiveData(const std::vector<GPUArgument*>& args)
 		error_code = clEnqueueReadBuffer(queue, *args.at(i)->getArgument(&context), CL_TRUE, 0, args.at(i)->getArrSize(), args.at(i)->getPtr(), 0, nullptr, nullptr);
 		if (ReadBufferError.checkError(this)) return getError();
 	}
-	return getError();
+    return getError();
 }
+
 ecl::GPU::~GPU()
 {
-	clReleaseDevice(*device);
-	clReleaseContext(context);
-	clReleaseCommandQueue(queue);
+    if(initialized){
+        clReleaseDevice(*device);
+        clReleaseContext(context);
+        clReleaseCommandQueue(queue);
+    }
 }
 
 const char* ecl::GPUProgram::getBuildError(cl_context* context, cl_device_id* device)
