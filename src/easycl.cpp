@@ -16,6 +16,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with EasyCL.  If not, see <https://www.gnu.org/licenses/>.
 
+bool ecl::Initializable::Initialized()
+{
+    return initialized;
+}
+
+bool ecl::SharedInitializable::shared_initialized = false;
+bool ecl::SharedInitializable::SharedInitialized()
+{
+    return shared_initialized;
+}
+
 void ecl::ErrorObject::generateError(){
     size_t size = error_vector.size();
     error = "";
@@ -142,7 +153,6 @@ cl_uint ecl::Platform::platforms_count;
 cl_platform_id* ecl::Platform::platforms;
 cl_uint* ecl::Platform::devices_count;
 cl_device_id** ecl::Platform::devices;
-bool ecl::Platform::initialized = false;
 void ecl::Platform::checkPlatform(size_t platform_index)
 {
     if(platform_index >= platforms_count){
@@ -162,7 +172,7 @@ void ecl::Platform::checkDevice(size_t platform_index, size_t device_index)
 std::string& ecl::Platform::init(cl_device_type type)
 {
 
-	if (initialized) {
+    if (shared_initialized) {
 		shared_error_code = -1;
 		PlatformInitError2.checkSharedError();
 		return getSharedError();
@@ -183,13 +193,10 @@ std::string& ecl::Platform::init(cl_device_type type)
 		if (DeviceInitError.checkSharedError()) return getSharedError();
 	}
 
-	initialized = true;
+    shared_initialized = true;
 	return getSharedError();
 }
-bool ecl::Platform::Initialized()
-{
-	return initialized;
-}
+
 cl_platform_id* ecl::Platform::getPlatform(size_t i)
 {
 	return platforms + i;
@@ -433,7 +440,7 @@ const char* ecl::GPGPUError::getError(int error) {
 ecl::GPU::GPU(size_t platform_index, size_t device_index)
 {
 
-	if (!Platform::Initialized()) Platform::init(CL_DEVICE_TYPE_GPU);
+    if (!Platform::SharedInitialized()) Platform::init(CL_DEVICE_TYPE_GPU);
     Platform::checkDevice(platform_index, device_index);
     if (Platform::HasSharedError()){
         setError(Platform::getSharedError());
@@ -573,6 +580,12 @@ ecl::GPUFunction::~GPUFunction()
 	for (std::pair<cl_program*, cl_kernel> p : function) clReleaseKernel(p.second);
 }
 
+ecl::GPUArgument::GPUArgument()
+{
+    this->ptr = nullptr;
+    this->arr_size = 0;
+    this->mem_type = 0;
+}
 ecl::GPUArgument::GPUArgument(void* ptr, size_t arr_size, cl_mem_flags mem_type)
 {
 	this->ptr = ptr;
@@ -617,3 +630,7 @@ ecl::GPUArgument::~GPUArgument()
 {
     for (std::pair<cl_context*, cl_mem> p : buffer) clReleaseMemObject(p.second);
 }
+
+
+
+

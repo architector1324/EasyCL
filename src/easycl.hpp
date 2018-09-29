@@ -22,6 +22,22 @@
 //    along with EasyCL.  If not, see <https://www.gnu.org/licenses/>.
 
 namespace ecl {
+
+    class Initializable{
+    protected:
+        bool initialized; // флаг инициализации
+    public:
+        virtual void init() = 0;
+        bool Initialized();
+    };
+
+    class SharedInitializable{
+    protected:
+       static bool shared_initialized;
+    public:
+       static bool SharedInitialized();
+    };
+
 	class ErrorObject {
 	protected:
         std::vector<std::string> error_vector; // вектор ошибок
@@ -82,18 +98,15 @@ namespace ecl {
         const char* getError(int error);
 	};
 
-	class Platform : public SharedErrorObject {
+    class Platform : public SharedErrorObject, public SharedInitializable {
 	private:
 		static cl_uint platforms_count; // количество opencl платформ в системе
 		static cl_platform_id* platforms;
 
 		static cl_uint* devices_count; // количество вычислительных устройств в каждой платформе
 		static cl_device_id** devices;
-
-		static bool initialized; // флаг инициализации платформ
 	public:
         static std::string& init(cl_device_type type);
-		static bool Initialized(); // получить флаг инициализации
 
         static void checkPlatform(size_t platform_index);
         static void checkDevice(size_t platform_index, size_t device_index);
@@ -112,6 +125,7 @@ namespace ecl {
         size_t arr_size; // размер массива * размер типа его элементов
 		cl_mem_flags mem_type; // тип использумой памяти
 	public:
+        GPUArgument();
         GPUArgument(void* ptr, size_t arr_size, cl_mem_flags mem_type = CL_MEM_READ_WRITE);
         std::string& checkBuffer(cl_context* context); // проверить buffer на контекст
 
@@ -153,13 +167,12 @@ namespace ecl {
 		~GPUProgram();
 	};
 
-	class GPU : public ErrorObject {
+    class GPU : public ErrorObject, public Initializable {
 	private:
 		cl_device_id* device; // указатель на устройство
 		
 		cl_context context; // opencl контекст
 		cl_command_queue queue; // opencl очередь запросов
-        bool initialized = false; // флаг инициализации
 	public:
 		GPU(size_t platform_index, size_t device_index);
         std::string& sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
