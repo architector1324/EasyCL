@@ -542,9 +542,9 @@ const std::string& ecl::GPUProgram::checkProgram(cl_context* context, cl_device_
 
 	return getError();
 }
-cl_program*  ecl::GPUProgram::getProgram(cl_context*  context)
+const cl_program* ecl::GPUProgram::getProgram(cl_context*  context) const
 {
-    return& program.at(context);
+    return (const cl_program*)&program.at(context);
 }
 ecl::GPUProgram::GPUProgram(std::string&  source)
 {
@@ -570,9 +570,9 @@ const std::string& ecl::GPUFunction::checkKernel(cl_program* program)
 
 	return getError();
 }
-cl_kernel* ecl::GPUFunction::getFunction(cl_program* program)
+const cl_kernel* ecl::GPUFunction::getFunction(cl_program* program) const
 {
-    return& function.at(program);
+    return (const cl_kernel*)&function.at(program);
 }
 ecl::GPUFunction::~GPUFunction()
 {

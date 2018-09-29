@@ -147,7 +147,7 @@ namespace ecl {
 	public:
 		GPUFunction(const char* name);
         const std::string &checkKernel(cl_program* program); // проверить ядро на программу
-		cl_kernel* getFunction(cl_program* program); // получить указатель на программу
+        const cl_kernel *getFunction(cl_program* program) const; // получить указатель на программу
 		~GPUFunction();
 	};
 
@@ -163,7 +163,7 @@ namespace ecl {
 		GPUProgram(const char* source, size_t length);
 		GPUProgram(std::string& source);
         const std::string &checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
-        cl_program* getProgram(cl_context* context); // получить указатель на программу
+        const cl_program* getProgram(cl_context* context) const; // получить указатель на программу
 		~GPUProgram();
 	};
 
