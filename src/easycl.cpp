@@ -471,18 +471,18 @@ const std::string& ecl::GPU::compute(GPUProgram* prog, GPUFunction* func, const 
 	setError(prog->checkProgram(&context, device));
 	if (has_error) return getError();
 
-	setError(func->checkKernel(prog->getProgram(&context)));
+    setError(func->checkKernel((cl_program*)prog->getProgram(&context)));
 	if (has_error) return getError();
 
 	for (size_t i(0); i < args.size(); i++) {
 		setError(args.at(i)->checkBuffer(&context));
 		if (has_error) return getError();
 
-		error_code = clSetKernelArg(*func->getFunction(prog->getProgram(&context)), i, sizeof(cl_mem), args.at(i)->getArgument(&context));
+        error_code = clSetKernelArg(*func->getFunction((cl_program*)prog->getProgram(&context)), i, sizeof(cl_mem), args.at(i)->getArgument(&context));
 		if (SetKernelArgError.checkError(this)) return getError();
 	}
 
-    error_code = clEnqueueNDRangeKernel(queue,* func->getFunction(prog->getProgram(&context)), global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
+    error_code = clEnqueueNDRangeKernel(queue,* func->getFunction((cl_program*)prog->getProgram(&context)), global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
 	ExecuteError.checkError(this);
 
     clFinish(queue);
