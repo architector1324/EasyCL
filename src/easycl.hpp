@@ -27,8 +27,7 @@ namespace ecl {
     protected:
         bool initialized; // флаг инициализации
     public:
-        virtual void init() = 0;
-        bool Initialized();
+        bool Initialized() const;
     };
 
     class SharedInitializable{
@@ -48,12 +47,12 @@ namespace ecl {
     public:
 		void setError(std::string error);
 		// разместить сообщение об ошибке в вектор ошибок
-		int getErrorCode(); // получить код последней ошибки
+        int getErrorCode() const; // получить код последней ошибки
 
 		void clearErrors(); // очистить вектор ошибок
-        std::string& getError(); // получить конечное сообщение обо всех ошибках в векторе ошибок
-		std::vector<std::string>& getErrorVector(); // получить вектор ошибок
-		bool HasError(); // узнать, содержит ли вектор ошибок ошибки
+        const std::string &getError() const; // получить конечное сообщение обо всех ошибках в векторе ошибок
+        const std::vector<std::string>& getErrorVector() const; // получить вектор ошибок
+        bool HasError() const; // узнать, содержит ли вектор ошибок ошибки
 	};
 
 	// аналогично ErrorObject
@@ -66,11 +65,11 @@ namespace ecl {
         static void generateSharedError();
 	public:
 		static void setSharedError(std::string error);
-		static int getSharedErrorCode();
+        static int getSharedErrorCode();
 
 		static void clearSharedErrors();
         static std::string& getSharedError();
-		static std::vector<std::string>& getSharedErrorVector();
+        static std::vector<std::string>& getSharedErrorVector();
 		static bool HasSharedError();
 	};
 
@@ -83,19 +82,19 @@ namespace ecl {
 		bool checkSharedError();
 		void setError(ErrorObject* obj, std::string error_str); // разместить сообщение об ошибке в обьекте obj
 		void setSharedError(std::string error_str);
-        virtual const char* getError(int error) = 0; // получить сообщение об ошибке по ее коду
+        virtual const char* getError(int error) const = 0; // получить сообщение об ошибке по ее коду
 	};
 
 	class CLError : public Error {
 	public:
 		CLError(std::string prefix);
-        const char* getError(int error);
+        const char* getError(int error) const;
 	};
 
 	class GPGPUError : public Error {
 	public:
 		GPGPUError(std::string prefix);
-        const char* getError(int error);
+        const char* getError(int error) const;
 	};
 
     class Platform : public SharedErrorObject, public SharedInitializable {
@@ -126,12 +125,13 @@ namespace ecl {
 		cl_mem_flags mem_type; // тип использумой памяти
 	public:
         GPUArgument();
+        GPUArgument(const void* ptr, size_t arr_size);
         GPUArgument(void* ptr, size_t arr_size, cl_mem_flags mem_type = CL_MEM_READ_WRITE);
-        std::string& checkBuffer(cl_context* context); // проверить buffer на контекст
+        const std::string& checkBuffer(cl_context* context); // проверить buffer на контекст
 
-        void* getPtr(); // получить указатель
-        size_t getArrSize(); // получить размер массива * размер типа его элементов
-		cl_mem* getArgument(cl_context* context); // получить указатель на буфер по контексту
+        void* getPtr() const; // получить указатель
+        size_t getArrSize() const; // получить размер массива * размер типа его элементов
+        const cl_mem* getArgument(cl_context* context) const; // получить указатель на буфер по контексту
 
 		void setPtr(void* ptr); // задать новый указатель на массив
 		void setArrSize(size_t arr_size); // задать новый размер массива
@@ -146,7 +146,7 @@ namespace ecl {
 		const char* name; // имя ядра
 	public:
 		GPUFunction(const char* name);
-        std::string& checkKernel(cl_program* program); // проверить ядро на программу
+        const std::string &checkKernel(cl_program* program); // проверить ядро на программу
 		cl_kernel* getFunction(cl_program* program); // получить указатель на программу
 		~GPUFunction();
 	};
@@ -162,8 +162,8 @@ namespace ecl {
         GPUProgram(const char* source);
 		GPUProgram(const char* source, size_t length);
 		GPUProgram(std::string& source);
-        std::string& checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
-		cl_program* getProgram(cl_context* context); // получить указатель на программу
+        const std::string &checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
+        cl_program* getProgram(cl_context* context); // получить указатель на программу
 		~GPUProgram();
 	};
 
@@ -175,10 +175,10 @@ namespace ecl {
 		cl_command_queue queue; // opencl очередь запросов
 	public:
 		GPU(size_t platform_index, size_t device_index);
-        std::string& sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
+        const std::string& sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
 		// выполнить программу на устройстве
-        std::string& compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
-        std::string& receiveData(const std::vector<GPUArgument*>& args); // получить данные с устройства
+        const std::string& compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
+        const std::string& receiveData(const std::vector<GPUArgument*>& args); // получить данные с устройства
 
 		~GPU();
 	};
