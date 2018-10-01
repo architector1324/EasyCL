@@ -21,83 +21,60 @@
 //    You should have received a copy of the GNU General Public License
 //    along with EasyCL.  If not, see <https://www.gnu.org/licenses/>.
 
-namespace ecl {
+namespace ecl{
+
+    class ErrorObject{
+    protected:
+        int error_code = 0; // код последней ошибки
+    public:
+        int getErrorCode() const; // получить код последней ошибки
+    };
 
     class Initializable{
     protected:
         bool initialized; // флаг инициализации
     public:
-        bool Initialized() const;
+        bool Initialized() const; // проверить флаг инициализации
+    };
+
+    // аналогично ErrorObject
+    class SharedErrorObject{
+    protected:
+        static int shared_error_code; // код последней ошибки
+    public:
+        static int getSharedErrorCode(); // получить код последней ошибки
     };
 
     class SharedInitializable{
     protected:
-       static bool shared_initialized;
+       static bool shared_initialized; // флаг инициализации
     public:
-       static bool SharedInitialized();
+       static bool SharedInitialized(); // проверить флаг инициализации
     };
 
-	class ErrorObject {
-	protected:
-        std::vector<std::string> error_vector; // вектор ошибок
-        std::string error = ""; // конечное сообщение об ошибке
-        int error_code = 0; // код последней ошибки
-        bool has_error = false; // содержит ли вектор ошибок ошибки (сообщение ok не считается за ошибку)
-        void generateError();
-    public:
-		void setError(std::string error);
-		// разместить сообщение об ошибке в вектор ошибок
-        int getErrorCode() const; // получить код последней ошибки
-
-		void clearErrors(); // очистить вектор ошибок
-        const std::string &getError() const; // получить конечное сообщение обо всех ошибках в векторе ошибок
-        const std::vector<std::string>& getErrorVector() const; // получить вектор ошибок
-        bool HasError() const; // узнать, содержит ли вектор ошибок ошибки
-	};
-
-	// аналогично ErrorObject
-	class SharedErrorObject { 
-	protected:
-        static std::vector<std::string> shared_error_vector;
-        static std::string shared_error;
-        static int shared_error_code;
-        static bool has_shared_error;
-        static void generateSharedError();
+    class Error{
+        protected:
+        const char* prefix; // префикс ошибки - указывается источник ошибки
 	public:
-		static void setSharedError(std::string error);
-        static int getSharedErrorCode();
-
-		static void clearSharedErrors();
-        static std::string& getSharedError();
-        static std::vector<std::string>& getSharedErrorVector();
-		static bool HasSharedError();
-	};
-
-	class Error {
-	private:
-		std::string prefix; // префикс ошибки - указывается источник ошибки
-	public:
-		Error(std::string prefix);
-		bool checkError(ErrorObject* obj); // проверить ошибки в обьекте obj
-		bool checkSharedError();
-		void setError(ErrorObject* obj, std::string error_str); // разместить сообщение об ошибке в обьекте obj
-		void setSharedError(std::string error_str);
+        Error(const char* prefix);
+        void checkError(ErrorObject* obj) const; // проверить ошибки в обьекте obj
+        void checkSharedError() const; // проверить ошибки в SharedErrorObject
         virtual const char* getError(int error) const = 0; // получить сообщение об ошибке по ее коду
 	};
 
-	class CLError : public Error {
+    class CLError : public Error{
 	public:
-		CLError(std::string prefix);
+        CLError(const char* prefix);
         const char* getError(int error) const;
 	};
 
-	class GPGPUError : public Error {
+    class GPGPUError : public Error{
 	public:
-		GPGPUError(std::string prefix);
+        GPGPUError(const char* prefix);
         const char* getError(int error) const;
 	};
 
-    class Platform : public SharedErrorObject, public SharedInitializable {
+    class Platform : public SharedErrorObject, public SharedInitializable{
 	private:
 		static cl_uint platforms_count; // количество opencl платформ в системе
 		static cl_platform_id* platforms;
@@ -105,7 +82,7 @@ namespace ecl {
 		static cl_uint* devices_count; // количество вычислительных устройств в каждой платформе
 		static cl_device_id** devices;
 	public:
-        static std::string& init(cl_device_type type);
+        static void init(cl_device_type type);
 
         static void checkPlatform(size_t platform_index);
         static void checkDevice(size_t platform_index, size_t device_index);
@@ -117,7 +94,7 @@ namespace ecl {
 		virtual void abstract() = 0; // данный класс является абстрактным
 	};
 
-	class GPUArgument : public ErrorObject {
+    class GPUArgument : public ErrorObject{
 	private:
 		std::map<cl_context*, cl_mem> buffer; // карта буферов по контексту
         void* ptr; // указатель на адрес значения или массива
@@ -127,7 +104,7 @@ namespace ecl {
         GPUArgument();
         GPUArgument(const void* ptr, size_t arr_size);
         GPUArgument(void* ptr, size_t arr_size, cl_mem_flags mem_type = CL_MEM_READ_WRITE);
-        const std::string& checkBuffer(cl_context* context); // проверить buffer на контекст
+        void checkBuffer(cl_context* context); // проверить buffer на контекст
 
         void* getPtr() const; // получить указатель
         size_t getArrSize() const; // получить размер массива * размер типа его элементов
@@ -140,18 +117,18 @@ namespace ecl {
 		~GPUArgument();
 	};
 
-	class GPUFunction : public ErrorObject {
+    class GPUFunction : public ErrorObject{
 	private:
 		std::map<cl_program*, cl_kernel> function; // карта ядер по программам
 		const char* name; // имя ядра
 	public:
 		GPUFunction(const char* name);
-        const std::string &checkKernel(cl_program* program); // проверить ядро на программу
+        void checkKernel(cl_program* program); // проверить ядро на программу
         const cl_kernel *getFunction(cl_program* program) const; // получить указатель на программу
 		~GPUFunction();
 	};
 
-	class GPUProgram : public ErrorObject {
+    class GPUProgram : public ErrorObject{
 	private:
 		std::map<cl_context*, cl_program> program; // карта программ по контексту
 		const char* program_source; // исходный текст программы
@@ -162,23 +139,23 @@ namespace ecl {
         GPUProgram(const char* source);
 		GPUProgram(const char* source, size_t length);
 		GPUProgram(std::string& source);
-        const std::string &checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
+        void checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
         const cl_program* getProgram(cl_context* context) const; // получить указатель на программу
 		~GPUProgram();
 	};
 
-    class GPU : public ErrorObject, public Initializable {
+    class GPU : public ErrorObject, public Initializable{
 	private:
 		cl_device_id* device; // указатель на устройство
 		
 		cl_context context; // opencl контекст
 		cl_command_queue queue; // opencl очередь запросов
 	public:
-		GPU(size_t platform_index, size_t device_index);
-        const std::string& sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
+        GPU(size_t platform_index = 0, size_t device_index = 0);
+        void sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
 		// выполнить программу на устройстве
-        const std::string& compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
-        const std::string& receiveData(const std::vector<GPUArgument*>& args); // получить данные с устройства
+        void compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
+        void receiveData(const std::vector<GPUArgument*>& args); // получить данные с устройства
 
 		~GPU();
 	};
