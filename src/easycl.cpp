@@ -377,19 +377,19 @@ void ecl::GPU::sendData(const std::vector<GPUArgument*>& args)
         WriteBufferError.checkError(this);
 	}
 }
-void ecl::GPU::compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size)
+void ecl::GPU::compute(GPUProgram& prog, GPUFunction& func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size)
 {
-    prog->checkProgram(&context, device);
-    func->checkKernel((cl_program*)prog->getProgram(&context));
+    prog.checkProgram(&context, device);
+    func.checkKernel((cl_program*)prog.getProgram(&context));
 
 	for (size_t i(0); i < args.size(); i++) {
         args.at(i)->checkBuffer(&context);
 
-        error_code = clSetKernelArg(*func->getFunction((cl_program*)prog->getProgram(&context)), i, sizeof(cl_mem), args.at(i)->getArgument(&context));
+        error_code = clSetKernelArg(*func.getFunction((cl_program*)prog.getProgram(&context)), i, sizeof(cl_mem), args.at(i)->getArgument(&context));
         SetKernelArgError.checkError(this);
 	}
 
-    error_code = clEnqueueNDRangeKernel(queue,* func->getFunction((cl_program*)prog->getProgram(&context)), global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
+    error_code = clEnqueueNDRangeKernel(queue,* func.getFunction((cl_program*)prog.getProgram(&context)), global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
 	ExecuteError.checkError(this);
 
     clFinish(queue);

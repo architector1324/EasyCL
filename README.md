@@ -57,7 +57,7 @@ int main()
     try {
         GPU video;
         video.sendData({&a});
-        video.compute(&program, &test, {&a}, {5});
+        video.compute(program, test, {&a}, {5});
         video.receiveData({&a});
 
     } catch (const exception& e) {

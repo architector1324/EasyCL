@@ -154,7 +154,7 @@ namespace ecl{
         GPU(size_t platform_index = 0, size_t device_index = 0);
         void sendData(const std::vector<GPUArgument*>& args); // отправить данные на устройство
 		// выполнить программу на устройстве
-        void compute(GPUProgram* prog, GPUFunction* func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
+        void compute(GPUProgram& prog, GPUFunction& func, const std::vector<GPUArgument*>& args, const std::vector<size_t>& global_work_size);
         void receiveData(const std::vector<GPUArgument*>& args); // получить данные с устройства
 
 		~GPU();
