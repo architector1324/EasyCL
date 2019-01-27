@@ -12,32 +12,46 @@ The library allows you to bypass some of the inconveniences of the original *Ope
 ## Abstractions
 ### Arguments
 It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs.
->ecl::GPUArgument argument(void* pointer, size_t array_size, cl_mem_flags mem_type)
+```c++
+ecl::GPUArgument argument(void* pointer, size_t array_size, cl_mem_flags mem_type)
+```
 
 To change the pointer to the memory area of the host at any time during program execution:
->argument.setPtr(void* pointer)
-
+```c++
+argument.setPtr(void* pointer)
+```
 To change the buffer size at any time during program execution:
->argument.setArrSize(size_t size)
+```c++
+argument.setArrSize(size_t size)
+```
 
 To change the buffer memory access type:
->argument.setMemType(cl_mem_flags mem_type)
+```c++
+argument.setMemType(cl_mem_flags mem_type)
+```
 
 ### Kernels
 This is an abstraction of functions in the OpenCL program. Once created, the function can be used in various programs.
->ecl::GPUFunction myFunc = "name_of_my_kernel"
+```c++
+ecl::GPUFunction myFunc = "name_of_my_kernel"
+```
+
 ### Programs
 This is an abstraction of the program from the devices of the final execution. Once created, the program can be used on various devices.
->ecl::GPUProgram myProg = "__kernel void name_of_my_kernel(){...}"
+```c++
+ecl::GPUProgram myProg = "__kernel void name_of_my_kernel(){...}"
+```
 
 ### GPU's
 This is an abstraction of the execution device, which is a logical execution device. One physical execution device may have several logical ones.
-> ecl::GPU video(size_t platform_index, size_t device_index)
+```c++
+ecl::GPU video(size_t platform_index, size_t device_index)
+```
 
 
 ## Hello, World
 
-```
+```c++
 #include <iostream>
 #include "easycl.hpp"
 
