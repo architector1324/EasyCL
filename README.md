@@ -8,7 +8,13 @@ It is designed for easy and convenient use, at the same time optimized. It is no
 The library allows you to bypass some of the inconveniences of the original *OpenCL*, providing work with **abstractions** of different levels, allows you to bypass the **restriction of hard binding** of arguments to the kernel, kernels to the program, programs to the final device.
 
 * At the moment, only OpenCL 1.2 is supported
-* At the moment, only calculations on GPU's are supported
+
+## Installation
+ 1) Install OpenCL library on your system
+ 1) Clone the repo `$ git clone https://github.com/architector1324/EasyCL`
+ 2) Make the dynamic library `$ ./make.sh`
+ 3) Install `$ sudo ./install.sh`
+
 ## Abstractions
 ### Arguments
 It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs.
@@ -48,12 +54,6 @@ This is an abstraction of the execution device, which is a logical execution dev
 ecl::GPU video(size_t platform_index, size_t device_index)
 ```
 
-## Installation
- 1) Install OpenCL library on your system
- 1) Clone the repo `$ git clone https://github.com/architector1324/EasyCL`
- 2) Make the dynamic library `$ ./make.sh`
- 3) Install `$ sudo ./install.sh`
-
 ## Hello, World
  1) Create main.cpp:
 
@@ -69,7 +69,7 @@ int main()
     ecl::GPUKernel kern = "test";
 
     size_t A[5] = {0, 0, 0, 0, 0};
-    ecl::GPUArgument a(A, 5 * sizeof(size_t));
+    ecl::GPUArgument a(A, 5 * sizeof(size_t), CL_MEM_READ_WRITE);
 
     try {
         ecl::GPU video(0, 0);
@@ -117,7 +117,7 @@ int main()
     ecl::GPUKernel kern = "test";
 
     size_t A[5] = {0, 0, 0, 0, 0};
-    ecl::GPUArgument a(A, 5 * sizeof(size_t));
+    ecl::GPUArgument a(A, 5 * sizeof(size_t), CL_MEM_READ_WRITE);
 
     try {
         ecl::GPU video(0, 0);
