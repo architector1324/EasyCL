@@ -1,3 +1,5 @@
+[![CodeFactor](https://www.codefactor.io/repository/github/architector1324/easycl/badge)](https://www.codefactor.io/repository/github/architector1324/easycl)
+
 # Easy Computing Library
 
 ## Overview
