@@ -20,6 +20,9 @@ void ecl::GPU::sendData(std::vector<ecl::GPUArgument*> args){
 
         error = clEnqueueWriteBuffer(queue, *curr->getBuffer(&context), CL_TRUE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
         checkError();
+        
+        error = clFinish(queue);
+        checkError();
     }
 }
 
@@ -37,10 +40,16 @@ void ecl::GPU::compute(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgumen
 
         error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), curr->getBuffer(&context));
         checkError();
+        
+        error = clFinish(queue);
+        checkError();
 	}
 
     error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
 	checkError();
+    
+    error = clFinish(queue);
+    checkError();
 }
 
 void ecl::GPU::receiveData(std::vector<ecl::GPUArgument*> args){
@@ -50,6 +59,9 @@ void ecl::GPU::receiveData(std::vector<ecl::GPUArgument*> args){
         curr->checkBuffer(&context);
 
         error = clEnqueueReadBuffer(queue, *curr->getBuffer(&context), CL_TRUE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
+        checkError();
+        
+        error = clFinish(queue);
         checkError();
     }
 }
