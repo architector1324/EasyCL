@@ -33,7 +33,7 @@ argument.setMemType(cl_mem_flags mem_type)
 ### Kernels
 This is an abstraction of functions in the OpenCL program. Once created, the function can be used in various programs.
 ```c++
-ecl::GPUFunction myFunc = "name_of_my_kernel"
+ecl::GPUKernel myKern = "name_of_my_kernel"
 ```
 
 ### Programs
@@ -48,39 +48,103 @@ This is an abstraction of the execution device, which is a logical execution dev
 ecl::GPU video(size_t platform_index, size_t device_index)
 ```
 
+## Installation
+ 1) Install OpenCL library on your system
+ 1) Clone the repo `$ git clone https://github.com/architector1324/EasyCL`
+ 2) Make the dynamic library `$ ./make.sh`
+ 3) Install `$ sudo ./install.sh`
 
 ## Hello, World
+ 1) Create main.cpp:
 
 ```c++
 #include <iostream>
-#include "easycl.hpp"
-
-using namespace std;
-using namespace ecl;
+#include <EasyCL/gpu.hpp>
 
 int main()
 {
-    GPUProgram program = "__kernel void test(__global float* a) {"
-                "a[get_global_id(0)] += (float)get_global_id(0);"
-                "}";
-    GPUFunction test = "test";
+    ecl::GPUProgram prog = "__kernel void test(__global size_t* a) {"
+                           "    a[get_global_id(0)] += get_global_id(0);"
+                           "}";
+    ecl::GPUKernel kern = "test";
 
-    float A[5] = {0.0f};
-    GPUArgument a(A, 5 * sizeof(float));
+    size_t A[5] = {0, 0, 0, 0, 0};
+    ecl::GPUArgument a(A, 5 * sizeof(size_t));
 
     try {
-        GPU video;
+        ecl::GPU video(0, 0);
         video.sendData({&a});
-        video.compute(program, test, {&a}, {5});
+        video.compute(&prog, &kern, {&a}, {5});
         video.receiveData({&a});
 
-    } catch (const exception& e) {
-        cout << e.what() << endl;
+    } catch (const std::exception& e) {
+        std::cout << e.what() << std::endl;
     }
 
-    for(size_t i(0); i < 5; i++) cout << A[i] << " ";
-    cout << endl;
+    for(size_t i(0); i < 5; i++) std::cout << A[i] << " ";
+    std::cout << std::endl;
+
+    ecl::Platform::free();
 
     return 0;
 }
+```
+
+ 2) Type in terminal:
+```bash
+$ g++ -lEasyCL -lOpenCL -o test main.cpp
+$ ./test
+```
+
+Output:
+```
+0 1 2 3 4
+```
+
+## Hello, World (static)
+ 1) Copy all files from library src to target folder
+ 2) Create main.cpp:
+
+```c++
+#include <iostream>
+#include "gpu.hpp"
+
+int main()
+{
+    ecl::GPUProgram prog = "__kernel void test(__global size_t* a) {"
+                           "    a[get_global_id(0)] += get_global_id(0);"
+                           "}";
+    ecl::GPUKernel kern = "test";
+
+    size_t A[5] = {0, 0, 0, 0, 0};
+    ecl::GPUArgument a(A, 5 * sizeof(size_t));
+
+    try {
+        ecl::GPU video(0, 0);
+        video.sendData({&a});
+        video.compute(&prog, &kern, {&a}, {5});
+        video.receiveData({&a});
+
+    } catch (const std::exception& e) {
+        std::cout << e.what() << std::endl;
+    }
+
+    for(size_t i(0); i < 5; i++) std::cout << A[i] << " ";
+    std::cout << std::endl;
+
+    ecl::Platform::free();
+
+    return 0;
+}
+```
+
+ 3) Type in terminal:
+```bash
+$ g++ -lOpenCL -o test *.cpp
+$ ./test
+```
+
+Output:
+```
+0 1 2 3 4
 ```
