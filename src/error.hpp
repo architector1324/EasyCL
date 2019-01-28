@@ -1,5 +1,8 @@
 #include <stdexcept>
 
+#ifndef EASYCL_ERROR
+#define EASYCL_ERROR
+
 namespace ecl{
     class Error{
         protected:
@@ -9,3 +12,5 @@ namespace ecl{
             static void checkError();
     };
 }
+
+#endif // EASYCL_ERROR

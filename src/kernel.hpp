@@ -1,5 +1,8 @@
 #include "program.hpp"
 
+#ifndef EASYCL_KERNEL
+#define EASYCL_KERNEL
+
 namespace ecl{
     class GPUKernel: public Error{
     private:
@@ -13,3 +16,5 @@ namespace ecl{
         ~GPUKernel();
     };
 }
+
+#endif // EASYCL_KERNEL

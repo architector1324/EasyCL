@@ -4,6 +4,9 @@
 #include <string>
 #include "error.hpp"
 
+#ifndef EASYCL_PLATFORM
+#define EASYCL_PLATFORM
+
 namespace ecl{
     class Platform : public Error{
     private:
@@ -32,3 +35,5 @@ namespace ecl{
         static void free();
     };
 }
+
+#endif // EASYCL_PLATFORM

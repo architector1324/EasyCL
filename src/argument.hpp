@@ -1,5 +1,8 @@
 #include "kernel.hpp"
 
+#ifndef EASYCL_ARGUMENT
+#define EASYCL_ARGUMENT
+
 namespace ecl{
     class GPUArgument : public Error{
     private:
@@ -26,3 +29,5 @@ namespace ecl{
         ~GPUArgument();
     };
 }
+
+#endif // EASYCL_ARGUMENT

@@ -2,6 +2,8 @@
 #include <cstring>
 #include "platform.hpp"
 
+#ifndef EASYCL_PROGRAM
+#define EASYCL_PROGRAM
 
 namespace ecl{
     class GPUProgram : public Error{
@@ -22,3 +24,5 @@ namespace ecl{
         ~GPUProgram();
     };
 }
+
+#endif // EASYCL_PLATFORM
