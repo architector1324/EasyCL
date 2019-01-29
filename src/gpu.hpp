@@ -15,6 +15,7 @@ namespace ecl{
 
             void sendData(std::vector<GPUArgument*> args); // отправить данные на устройство
             // выполнить программу на устройстве
+            void compute(GPUProgram* prog, GPUKernel* func, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
             void compute(GPUProgram* prog, GPUKernel* func, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size);
             void receiveData(std::vector<GPUArgument*> args); // получить данные с устройства
             ~GPU();
