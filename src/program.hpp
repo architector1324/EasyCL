@@ -1,5 +1,6 @@
 #include <map>
 #include <cstring>
+#include <fstream>
 #include "platform.hpp"
 
 #ifndef EASYCL_PROGRAM
@@ -16,9 +17,13 @@ namespace ecl{
     public:
         GPUProgram(const char* src, size_t len);
         GPUProgram(const char* src);
-        GPUProgram(std::string& src);
+
+        static const char* loadProgram(const char* filename);
 
         const cl_program* getProgram(cl_context* context) const; // получить указатель на программу
+        const char* getProgramSource() const;
+        size_t getProgramSourceLength() const;
+
         void checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
 
         ~GPUProgram();
