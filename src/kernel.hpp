@@ -11,6 +11,8 @@ namespace ecl{
     public:
         GPUKernel(const char* name);
 
+        void setKernelName(const char* name);
+
         const cl_kernel* getKernel(cl_program* program) const; // получить указатель на ядро
         void checkKernel(cl_program* program); // проверить ядро на прграмму
         ~GPUKernel();
