@@ -1,9 +1,10 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/architector1324/easycl/badge)](https://www.codefactor.io/repository/github/architector1324/easycl)
+[![Donate with Bitcoin](https://en.cryptobadges.io/badge/micro/1SrJvWx4MD1D7SPV236swT5jYJhug86tX)](https://en.cryptobadges.io/donate/1SrJvWx4MD1D7SPV236swT5jYJhug86tX)
 
 # Easy Computing Library
 
 ## Overview
-***EasyCL*** is an open heterogeneous computing library (*GPL v 3*) based on the [***OpenCL***](https://www.khronos.org/opencl/) specification.
+***EasyCL*** is an open heterogeneous computing library (*GPL v 3*) based on the [***OpenCL***](https://www.khronos.org/opencl/) specification. It's header-only library.
 
 It is designed for easy and convenient use, at the same time optimized. It is not built on the OpenCL object wrapper from [**Khronos**](https://www.khronos.org/), but uses the original [***The OpenCL 1.2 C Specification***](https://www.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf).
 
@@ -57,33 +58,28 @@ ecl::GPU video(size_t platform_index, size_t device_index)
 ```
 
 ## Hello, World
- 1) Create main.cpp:
+ 1) Copy 'EasyCL.hpp' to project folder
+ 2) Create `main.cpp`:
 
 ```c++
-#include <iostream>
-#include <EasyCL/gpu.hpp>
 
-int main()
-{
-    ecl::GPUProgram prog = "__kernel void test(__global size_t* a) {"
-                           "    a[get_global_id(0)] += get_global_id(0);"
-                           "}";
+#include <iostream>
+#include "EasyCL.hpp"
+
+int main(){
+    ecl::GPU video(0, 1);
+
+    ecl::GPUProgram prog = ecl::GPUProgram::loadProgram("kernel.cl");
     ecl::GPUKernel kern = "test";
 
-    size_t A[5] = {0, 0, 0, 0, 0};
-    ecl::GPUArgument a(A, 5 * sizeof(size_t), CL_MEM_READ_WRITE);
+    size_t A[12] = {0};
+    ecl::GPUArgument a(A, 12 * sizeof(size_t), CL_MEM_READ_WRITE);
 
-    try {
-        ecl::GPU video(0, 0);
-        video.sendData({&a});
-        video.compute(&prog, &kern, {&a}, {5});
-        video.receiveData({&a});
+    video.sendData({&a});
+    video.compute(&prog, &kern, {&a}, {12}, {3});
+    video.receiveData({&a});
 
-    } catch (const std::exception& e) {
-        std::cout << e.what() << std::endl;
-    }
-
-    for(size_t i(0); i < 5; i++) std::cout << A[i] << " ";
+    for(size_t i = 0 ; i < 12; i++) std::cout << A[i] << " ";
     std::cout << std::endl;
 
     ecl::Platform::free();
@@ -91,62 +87,21 @@ int main()
     return 0;
 }
 ```
-
- 2) Type in terminal:
-```bash
-$ g++ -lEasyCL -lOpenCL -o test main.cpp
-$ ./test
-```
-
-Output:
-```
-0 1 2 3 4
-```
-
-## Hello, World (static)
- 1) Copy all files from library src to target folder
- 2) Create main.cpp:
-
-```c++
-#include <iostream>
-#include "gpu.hpp"
-
-int main()
-{
-    ecl::GPUProgram prog = "__kernel void test(__global size_t* a) {"
-                           "    a[get_global_id(0)] += get_global_id(0);"
-                           "}";
-    ecl::GPUKernel kern = "test";
-
-    size_t A[5] = {0, 0, 0, 0, 0};
-    ecl::GPUArgument a(A, 5 * sizeof(size_t), CL_MEM_READ_WRITE);
-
-    try {
-        ecl::GPU video(0, 0);
-        video.sendData({&a});
-        video.compute(&prog, &kern, {&a}, {5});
-        video.receiveData({&a});
-
-    } catch (const std::exception& e) {
-        std::cout << e.what() << std::endl;
-    }
-
-    for(size_t i(0); i < 5; i++) std::cout << A[i] << " ";
-    std::cout << std::endl;
-
-    ecl::Platform::free();
-
-    return 0;
+ 3) Create `kernel.cl`:
+```c
+__kernel void test(__global size_t* a){
+    size_t i = get_global_id(0);
+    a[i] = get_group_id(0) + 1;
 }
 ```
 
- 3) Type in terminal:
+ 4) Type in terminal:
 ```bash
-$ g++ -lOpenCL -o test *.cpp
+$ g++ -lOpenCL -o test main.cpp
 $ ./test
 ```
 
 Output:
 ```
-0 1 2 3 4
+1 1 1 2 2 2 3 3 3 4 4 4
 ```
