@@ -62,6 +62,8 @@ namespace ecl{
         const char* getProgramSource() const;
         size_t getProgramSourceLength() const;
 
+        void setProgramSource(const char* src, size_t len);
+
         void checkProgram(cl_context* context, cl_device_id* device); // проверить программу на контекст
 
         ~GPUProgram();
@@ -118,8 +120,11 @@ namespace ecl{
 
             void sendData(std::vector<GPUArgument*> args); // отправить данные на устройство
             // выполнить программу на устройстве
-            void compute(GPUProgram* prog, GPUKernel* func, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
-            void compute(GPUProgram* prog, GPUKernel* func, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size);
+            void compute(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
+            void compute(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size);
+            void thread(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args);
+            void threads_join();
+            
             void receiveData(std::vector<GPUArgument*> args); // получить данные с устройства
             ~GPU();
     };
@@ -487,6 +492,14 @@ namespace ecl{
         return program_source_length;
     }
 
+    void GPUProgram::setProgramSource(const char* src, size_t len){
+        if(program.size() == 0){
+            this->program_source = src;
+            this->program_source_length = len;
+        } 
+        else throw std::runtime_error("unable to change program until it's using");
+    }
+
     void GPUProgram::checkProgram(cl_context* context, cl_device_id* device){
         if(program.find(context) == program.end()){
             program.emplace(context, clCreateProgramWithSource(*context, 1, (const char**)&program_source, (const size_t*)&program_source_length, &error));
@@ -511,7 +524,7 @@ namespace ecl{
 
     void GPUKernel::setKernelName(const char* name){
         if(kernel.size() == 0) this->name = name;
-        else throw std::runtime_error("unable to change kernel name while it's using");
+        else throw std::runtime_error("unable to change kernel name until it's using");
     }
 
     const cl_kernel* GPUKernel::getKernel(cl_program* program) const{
@@ -649,6 +662,30 @@ namespace ecl{
         error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
         checkError();
         
+        error = clFinish(queue);
+        checkError();
+    }
+
+    void GPU::thread(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args){
+        prog->checkProgram(&context, device);
+        cl_program* prog_program = (cl_program*)prog->getProgram(&context);
+        
+        kern->checkKernel(prog_program);
+        cl_kernel kern_kernel = *kern->getKernel(prog_program);
+
+        size_t count = args.size();
+        for (size_t i(0); i < count; i++) {
+            GPUArgument* curr = args.at(i);
+            curr->checkBuffer(&context);
+
+            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), curr->getBuffer(&context));
+            checkError();
+        }
+
+        error = clEnqueueTask(queue, kern_kernel, 0, nullptr, nullptr);
+        checkError();
+    }
+    void GPU::threads_join(){
         error = clFinish(queue);
         checkError();
     }
