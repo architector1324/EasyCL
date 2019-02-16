@@ -2,7 +2,7 @@
 #include "EasyCL.hpp"
 
 int main(){
-    ecl::GPU video(0, 1);
+    ecl::GPU video(0, 0);
 
     ecl::GPUProgram prog = ecl::GPUProgram::loadProgram("kernel.cl");
     ecl::GPUKernel kern = "test";

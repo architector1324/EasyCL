@@ -601,7 +601,7 @@ namespace ecl{
             GPUArgument* curr = args.at(i);
             curr->checkBuffer(&context);
 
-            error = clEnqueueWriteBuffer(queue, *curr->getBuffer(&context), CL_TRUE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
+            error = clEnqueueWriteBuffer(queue, *curr->getBuffer(&context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
             checkError();
         }
         error = clFinish(queue);
@@ -623,9 +623,6 @@ namespace ecl{
             error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), curr->getBuffer(&context));
             checkError();
         }
-
-        error = clFinish(queue);
-        checkError();
 
         error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
         checkError();
@@ -649,9 +646,6 @@ namespace ecl{
             checkError();
         }
 
-        error = clFinish(queue);
-        checkError();
-
         error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
         checkError();
         
@@ -665,7 +659,7 @@ namespace ecl{
             GPUArgument* curr = args.at(i);
             curr->checkBuffer(&context);
 
-            error = clEnqueueReadBuffer(queue, *curr->getBuffer(&context), CL_TRUE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
+            error = clEnqueueReadBuffer(queue, *curr->getBuffer(&context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
             checkError();
         }
         error = clFinish(queue);
