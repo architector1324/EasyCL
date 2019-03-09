@@ -96,7 +96,7 @@ This is an abstraction of the program from the devices of the final execution. O
 ```c++
 ecl::Program myProg = "__kernel void name_of_my_kernel(){...}";
 ```
-You can load source program from file:
+Also you can load source program from file:
 ```c++
 static const char* loadProgram(const char* filename);
 ```
@@ -108,7 +108,7 @@ void setProgramSource(const char* src, size_t len);
 ### Computers
 This is an abstraction of the execution device, which is a logical execution device. One physical execution device may have several computers.
 ```c++
-ecl::Computer video(size_t device_index, const Platform* platform, ecl::DEVICE);
+ecl::Computer video(size_t device_index, const ecl::Platform* platform, ecl::DEVICE);
 ```
 
 ```c++
@@ -127,8 +127,8 @@ void receiveData(std::vector<ArgumentBase*> args);
 ```
 Execute program on Device (SIMD):
 ```c++
-void compute(Program* prog, Kernel* kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size);
-void compute(Program* prog, Kernel* kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
 ```
 
 ### Threads
@@ -136,7 +136,7 @@ A thread is an abstraction of a thread on an executable device. After creating a
 
 Execute program on Device (Single thread):
 ```c++
-ecl::Thread th(Program* prog, Kernel* kern, std::vector<ArgumentBase*> args);
+ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, ecl::Computer* video);
 ```
 Sync single threads:
 ```c++
@@ -160,7 +160,7 @@ int main(){
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
     video.sendData({&a});
-    video.compute(&prog, &kern, {&a}, {12}, {3});
+    video.compute(prog, kern, {&a}, {12}, {3});
     video.receiveData({&a});
 
     for(size_t i = 0; i < 12; i++)
@@ -181,8 +181,8 @@ __kernel void test(__global int* a){
 
  4) Type in terminal:
 ```bash
-$ g++ -lOpenCL -o test main.cpp
-$ ./test
+$ g++ -lOpenCL -o a.out main.cpp
+$ ./a.out
 ```
 
 Output:
@@ -208,7 +208,7 @@ int main(){
 
     video.sendData({&a});
 
-    ecl::Thread th(&prog, &kern, {&a}, &video);
+    ecl::Thread th(prog, kern, {&a}, &video);
     th.join();
 
     std::cout << a.getValue() << std::endl;
@@ -227,8 +227,8 @@ __kernel void test(__global int* a){
 
  4) Type in terminal:
 ```bash
-$ g++ -lOpenCL -o test main.cpp
-$ ./test
+$ g++ -lOpenCL -o a.out main.cpp
+$ ./a.out
 ```
 
 Output:
