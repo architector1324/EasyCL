@@ -15,34 +15,76 @@ The library allows you to bypass some of the inconveniences of the original *Ope
 ## Installation
  1) Install OpenCL library on your system
  1) Clone the repo `$ git clone https://github.com/architector1324/EasyCL`
- 2) Make the dynamic library `$ ./make.sh`
- 3) Install `$ sudo ./install.sh`
+ 2) Copy `EasyCL.hpp` to your project
 
 ## Abstractions
 ### Arguments
-It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs.
+It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments:
+1) Variable
 ```c++
-ecl::GPUArgument arg(void* data_ptr, size_t data_size, cl_mem_flags memory_type);
+ecl::Variable<T> var(const& T value);
+ecl::Variable<T> var(ecl::ACCESS);
+ecl::Variable<T> var(const T& value, ecl::ACCESS);
 ```
 
-To change the pointer to the memory area of the host at any time during program execution:
+To get /set value:
 ```c++
-void setDataPtr(void* data_ptr);
-```
-To change the buffer size at any time during program execution:
-```c++
-void setDataSize(size_t data_size);
+const T& getValue() const;
+void setValue(const T& value);
 ```
 
-To change the buffer memory access type:
+Also you can use overloaded operators:
 ```c++
-void setMemoryType(cl_mem_flags memory_type);
+var = const T&;
+var += const T&;
+var -= const T&;
+var *= const T&;
+var /= const T&;
+var++;
+var--;
+```
+
+2) Array
+```c++
+ecl::Array<T> array(size_t array_size);
+ecl::Array<T> array(size_t array_size, ecl::ACCESS);
+ecl::Array<T> array(const T* array, size_t array_size, ecl::CONTROL);
+ecl::Array<T> array(T* array, size_t array_size, ecl::ACCESS, ecl::CONTROL);
+```
+
+To get pointer to array:
+```c++
+const T* getConstArray() const;
+T* getArray();
+```
+
+To change pointer to array:
+```c++
+void setArray(const T* array, size_t array_size);
+void setArray(T* array, size_t array_size, ecl::ACCESS);
+```
+
+Also you can use overloaded access operator:
+```c++
+T& array[size_t]
+```
+
+Parameters:
+```c++
+ecl::ACCESS::READ; // read-only for value or array
+ecl::ACCESS::WRITE; // write-only for value or array
+ecl::ACCESS::READ_WRITE;
+```
+
+```c++
+ecl::CONTROL::BIND; // after deleting an object, it frees memory from array pointer
+ecl::CONTROL::FREE; // doesn't free array, you have to free it manually
 ```
 
 ### Kernels
 This is an abstraction of kernels in the OpenCL program. Once created, the kernel can be used in various programs.
 ```c++
-ecl::GPUKernel myKern = "name_of_my_kernel";
+ecl::Kernel myKern = "name_of_my_kernel";
 ```
 To change kernel name:
 ```c++
@@ -52,7 +94,7 @@ void setKernelName(const char* name);
 ### Programs
 This is an abstraction of the program from the devices of the final execution. Once created, the program can be used on various devices.
 ```c++
-ecl::GPUProgram myProg = "__kernel void name_of_my_kernel(){...}";
+ecl::Program myProg = "__kernel void name_of_my_kernel(){...}";
 ```
 You can load source program from file:
 ```c++
@@ -63,31 +105,42 @@ To change program:
 void setProgramSource(const char* src, size_t len);
 ```
 
-### GPU's
-This is an abstraction of the execution device, which is a logical execution device. One physical execution device may have several logical ones.
+### Computers
+This is an abstraction of the execution device, which is a logical execution device. One physical execution device may have several computers.
 ```c++
-ecl::GPU video(size_t platform_index, size_t device_index);
+ecl::Computer video(size_t device_index, const Platform* platform, ecl::DEVICE);
 ```
-Sending data to GPU:
+
 ```c++
-void sendData(std::vector<GPUArgument*> args);
+ecl::DEVICE::CPU; // CPU
+ecl::DEVICE::GPU; // GPU
+ecl::DEVICE::ACCEL; // Accelerator
 ```
-Receiving data from GPU:
+
+Sending data to Device:
 ```c++
-void receiveData(std::vector<GPUArgument*> args);
+void sendData(std::vector<ArgumentBase*> args);
 ```
-Execute program on GPU (SIMD):
+Receiving data from Device:
 ```c++
-void compute(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size);
-void compute(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
+void receiveData(std::vector<ArgumentBase*> args);
 ```
-Execute program on GPU (Single thread):
+Execute program on Device (SIMD):
 ```c++
-void thread(GPUProgram* prog, GPUKernel* kern, std::vector<GPUArgument*> args);
+void compute(Program* prog, Kernel* kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size);
+void compute(Program* prog, Kernel* kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
+```
+
+### Threads
+A thread is an abstraction of a thread on an executable device. After creating a thread, it will be immediately executed on the device, and the data will also be read when synchronizing the thread with the host or when it is destroyed.
+
+Execute program on Device (Single thread):
+```c++
+ecl::Thread th(Program* prog, Kernel* kern, std::vector<ArgumentBase*> args);
 ```
 Sync single threads:
 ```c++
-void threads_join();
+void join();
 ```
 
 ## Hello, World (SIMD)
@@ -99,32 +152,30 @@ void threads_join();
 #include "EasyCL.hpp"
 
 int main(){
-    ecl::GPU video(0, 0); // first platform, first GPU device
+    ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
+    ecl::Kernel kern = "test";
+    ecl::Array<int> a(12, ecl::ACCESS::READ_WRITE);
 
-   // load program from file 'kernel.cl'
-    ecl::GPUProgram prog = ecl::GPUProgram::loadProgram("kernel.cl");
-    ecl::GPUKernel kern = "test";
-
-    size_t A[12] = {0};
-    ecl::GPUArgument a(A, 12 * sizeof(size_t), CL_MEM_READ_WRITE);
+    auto p = ecl::System::getPlatform(0);
+    ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
     video.sendData({&a});
     video.compute(&prog, &kern, {&a}, {12}, {3});
     video.receiveData({&a});
 
-    for(size_t i = 0 ; i < 12; i++) std::cout << A[i] << " ";
+    for(size_t i = 0; i < 12; i++)
+        std::cout << a.getConstArray()[i] << " ";
     std::cout << std::endl;
 
-    ecl::Platform::free();
-
+    ecl::System::free();
     return 0;
 }
 ```
  3) Create `kernel.cl`:
 ```c
-__kernel void test(__global size_t* a){
+__kernel void test(__global int* a){
     size_t i = get_global_id(0);
-    a[i] = get_group_id(0) + 1;
+    a[i] = (int)get_group_id(0) + 1;
 }
 ```
 
@@ -139,7 +190,7 @@ Output:
 1 1 1 2 2 2 3 3 3 4 4 4
 ```
 
-## Hello, World (MIMD)
+## Hello, World (Single Thread)
  1) Copy 'EasyCL.hpp' to project folder
  2) Create `main.cpp`:
 
@@ -148,42 +199,29 @@ Output:
 #include "EasyCL.hpp"
 
 int main(){
-    ecl::GPU video(0, 0);
+    ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
+    ecl::Kernel kern = "test";
+    ecl::Variable<int> a(0, ecl::ACCESS::READ_WRITE);
 
-    ecl::GPUProgram prog = ecl::GPUProgram::loadProgram("kernel.cl");
-    ecl::GPUKernel kern = "test";
+    auto p = ecl::System::getPlatform(0);
+    ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    size_t A[12] = {0};
-    ecl::GPUArgument a(A, 12 * sizeof(size_t), CL_MEM_READ_WRITE);
+    video.sendData({&a});
 
-    size_t i = 0;
-    ecl::GPUArgument gpu_i(&i, sizeof(size_t), CL_MEM_READ_ONLY);
+    ecl::Thread th(&prog, &kern, {&a}, &video);
+    th.join();
 
-    video.sendData({&a, &gpu_i});
+    std::cout << a.getValue() << std::endl;
 
-    while(i < 12){
-        video.thread(&prog, &kern, {&a, &gpu_i});
-        i++;
-        video.sendData({&gpu_i});
-    }
-    video.threads_join();
-
-    video.receiveData({&a});
-
-    for(size_t i = 0 ; i < 12; i++) std::cout << A[i] << " ";
-    std::cout << std::endl;
-
-    ecl::Platform::free();
-
+    ecl::System::free();
     return 0;
 }
 ```
 
  3) Create `kernel.cl`:
 ```c
-__kernel void test(__global size_t* a, __constant size_t* thread_id){
-    size_t i = *thread_id;
-    a[i] = i + 1;
+__kernel void test(__global int* a){
+    a[0] = 15;
 }
 ```
 
@@ -195,5 +233,5 @@ $ ./test
 
 Output:
 ```
-1 2 3 4 5 6 7 8 9 10 11 12
+15
 ```
