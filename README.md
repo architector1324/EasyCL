@@ -17,132 +17,6 @@ The library allows you to bypass some of the inconveniences of the original *Ope
  1) Clone the repo `$ git clone https://github.com/architector1324/EasyCL`
  2) Copy `EasyCL.hpp` to your project
 
-## Abstractions
-### Arguments
-It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments:
-1) Variable
-```c++
-ecl::Variable<T> var(const& T value);
-ecl::Variable<T> var(ecl::ACCESS);
-ecl::Variable<T> var(const T& value, ecl::ACCESS);
-```
-
-To get /set value:
-```c++
-const T& getValue() const;
-void setValue(const T& value);
-```
-
-Also you can use overloaded operators:
-```c++
-var = const T&;
-var += const T&;
-var -= const T&;
-var *= const T&;
-var /= const T&;
-var++;
-var--;
-```
-
-2) Array
-```c++
-ecl::Array<T> array(size_t array_size);
-ecl::Array<T> array(size_t array_size, ecl::ACCESS);
-ecl::Array<T> array(const T* array, size_t array_size, ecl::CONTROL);
-ecl::Array<T> array(T* array, size_t array_size, ecl::ACCESS, ecl::CONTROL);
-```
-
-To get pointer to array:
-```c++
-const T* getConstArray() const;
-T* getArray();
-```
-
-To change pointer to array:
-```c++
-void setArray(const T* array, size_t array_size);
-void setArray(T* array, size_t array_size, ecl::ACCESS);
-```
-
-Also you can use overloaded access operator:
-```c++
-T& array[size_t]
-```
-
-Parameters:
-```c++
-ecl::ACCESS::READ; // read-only for value or array
-ecl::ACCESS::WRITE; // write-only for value or array
-ecl::ACCESS::READ_WRITE;
-```
-
-```c++
-ecl::CONTROL::BIND; // after deleting an object, it frees memory from array pointer
-ecl::CONTROL::FREE; // doesn't free array, you have to free it manually
-```
-
-### Kernels
-This is an abstraction of kernels in the OpenCL program. Once created, the kernel can be used in various programs.
-```c++
-ecl::Kernel myKern = "name_of_my_kernel";
-```
-To change kernel name:
-```c++
-void setKernelName(const char* name);
-```
-
-### Programs
-This is an abstraction of the program from the devices of the final execution. Once created, the program can be used on various devices.
-```c++
-ecl::Program myProg = "__kernel void name_of_my_kernel(){...}";
-```
-Also you can load source program from file:
-```c++
-static const char* loadProgram(const char* filename);
-```
-To change program:
-```c++
-void setProgramSource(const char* src, size_t len);
-```
-
-### Computers
-This is an abstraction of the execution device, which is a logical execution device. One physical execution device may have several computers.
-```c++
-ecl::Computer video(size_t device_index, const ecl::Platform* platform, ecl::DEVICE);
-```
-
-```c++
-ecl::DEVICE::CPU; // CPU
-ecl::DEVICE::GPU; // GPU
-ecl::DEVICE::ACCEL; // Accelerator
-```
-
-Sending data to Device:
-```c++
-void sendData(std::vector<ArgumentBase*> args);
-```
-Receiving data from Device:
-```c++
-void receiveData(std::vector<ArgumentBase*> args);
-```
-Execute program on Device (SIMD):
-```c++
-void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size);
-void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
-```
-
-### Threads
-A thread is an abstraction of a thread on an executable device. After creating a thread, it will be immediately executed on the device, and the data will also be read when synchronizing the thread with the host or when it is destroyed.
-
-Execute program on Device (Single thread):
-```c++
-ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, ecl::Computer* video);
-```
-Sync single threads:
-```c++
-void join();
-```
-
 ## Hello, World (SIMD)
  1) Copy 'EasyCL.hpp' to project folder
  2) Create `main.cpp`:
@@ -234,4 +108,131 @@ $ ./a.out
 Output:
 ```
 15
+```
+
+## API
+### Abstractions
+#### Arguments
+It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments:
+1) Variable
+```c++
+ecl::Variable<T> var(const& T value);
+ecl::Variable<T> var(ecl::ACCESS);
+ecl::Variable<T> var(const T& value, ecl::ACCESS);
+```
+
+To get /set value:
+```c++
+const T& getValue() const;
+void setValue(const T& value);
+```
+
+Also you can use overloaded operators:
+```c++
+var = const T&;
+var += const T&;
+var -= const T&;
+var *= const T&;
+var /= const T&;
+var++;
+var--;
+```
+
+2) Array
+```c++
+ecl::Array<T> array(size_t array_size);
+ecl::Array<T> array(size_t array_size, ecl::ACCESS);
+ecl::Array<T> array(const T* array, size_t array_size, ecl::CONTROL);
+ecl::Array<T> array(T* array, size_t array_size, ecl::ACCESS, ecl::CONTROL);
+```
+
+To get pointer to array:
+```c++
+const T* getConstArray() const;
+T* getArray();
+```
+
+To change pointer to array:
+```c++
+void setArray(const T* array, size_t array_size);
+void setArray(T* array, size_t array_size, ecl::ACCESS);
+```
+
+Also you can use overloaded access operator:
+```c++
+T& array[size_t]
+```
+
+Parameters:
+```c++
+ecl::ACCESS::READ; // read-only for value or array
+ecl::ACCESS::WRITE; // write-only for value or array
+ecl::ACCESS::READ_WRITE;
+```
+
+```c++
+ecl::CONTROL::BIND; // after deleting an object, it frees memory from array pointer
+ecl::CONTROL::FREE; // doesn't free array, you have to free it manually
+```
+
+#### Kernels
+This is an abstraction of kernels in the OpenCL program. Once created, the kernel can be used in various programs.
+```c++
+ecl::Kernel myKern = "name_of_my_kernel";
+```
+To change kernel name:
+```c++
+void setKernelName(const char* name);
+```
+
+#### Programs
+This is an abstraction of the program from the devices of the final execution. Once created, the program can be used on various devices.
+```c++
+ecl::Program myProg = "__kernel void name_of_my_kernel(){...}";
+```
+Also you can load source program from file:
+```c++
+static const char* loadProgram(const char* filename);
+```
+To change program:
+```c++
+void setProgramSource(const char* src, size_t len);
+```
+
+#### Computers
+This is an abstraction of the execution device, which is a logical execution device. One physical execution device may have several computers.
+```c++
+ecl::Computer video(size_t device_index, const ecl::Platform* platform, ecl::DEVICE);
+```
+
+```c++
+ecl::DEVICE::CPU; // CPU
+ecl::DEVICE::GPU; // GPU
+ecl::DEVICE::ACCEL; // Accelerator
+```
+
+Sending data to Device:
+```c++
+void sendData(std::vector<ArgumentBase*> args);
+```
+Receiving data from Device:
+```c++
+void receiveData(std::vector<ArgumentBase*> args);
+```
+Execute program on Device (SIMD):
+```c++
+void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
+```
+
+#### Threads
+A thread is an abstraction of a thread on an executable device. After creating a thread, it will be immediately executed on the device, and the data will also be read when synchronizing the thread with the host or when it is destroyed.
+
+Execute program on Device (Single thread):
+```c++
+ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, ecl::Computer* video);
+```
+Sync single threads:
+```c++
+void join();
 ```
