@@ -14,7 +14,7 @@ int main(){
     video.receiveData({&a});
 
     for(size_t i = 0; i < 12; i++)
-        std::cout << a.getConstArray()[i] << " ";
+        std::cout << a[i] << " ";
     std::cout << std::endl;
 
     ecl::System::free();
