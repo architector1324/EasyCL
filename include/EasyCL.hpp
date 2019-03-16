@@ -137,13 +137,13 @@ namespace ecl{
             const T& getValue() const;
             void setValue(const T&);
 
-            void operator++(int);
-            void operator--(int);
-            void operator=(const T&);
-            void operator+=(const T&);
-            void operator-=(const T&);
-            void operator*=(const T&);
-            void operator/=(const T&);
+            const T& operator++(int);
+            const T& operator--(int);
+            const T& operator=(const T&);
+            const T& operator+=(const T&);
+            const T& operator-=(const T&);
+            const T& operator*=(const T&);
+            const T& operator/=(const T&);
 
             ~Variable(){}
     };
@@ -729,33 +729,38 @@ namespace ecl{
     }
 
     template <typename T>
-    void Variable<T>::operator++(int){
-        local_value++;
+    const T& Variable<T>::operator++(int){
+        return ++local_value;
     }
     template <typename T>
-    void Variable<T>::operator--(int){
-        local_value--;
+    const T& Variable<T>::operator--(int){
+        return --local_value;
     }
 
     template <typename T>
-    void Variable<T>::operator=(const T& value){
+    const T& Variable<T>::operator=(const T& value){
         setValue(value);
+        return local_value;
     }
     template <typename T>
-    void Variable<T>::operator+=(const T& value){
+    const T& Variable<T>::operator+=(const T& value){
         setValue(local_value + value);
+        return local_value;
     }
     template <typename T>
-    void Variable<T>::operator-=(const T& value){
+    const T& Variable<T>::operator-=(const T& value){
         setValue(local_value - value);
+        return local_value;
     }
     template <typename T>
-    void Variable<T>::operator*=(const T& value){
+    const T& Variable<T>::operator*=(const T& value){
         setValue(local_value * value);
+        return local_value;
     }
     template <typename T>
-    void Variable<T>::operator/=(const T& value){
+    const T& Variable<T>::operator/=(const T& value){
         setValue(local_value / value);
+        return local_value;
     }
 
     // Array
