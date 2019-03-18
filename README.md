@@ -2,6 +2,9 @@
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/micro/1SrJvWx4MD1D7SPV236swT5jYJhug86tX)](https://en.cryptobadges.io/donate/1SrJvWx4MD1D7SPV236swT5jYJhug86tX)
 
 # Easy Computing Library
+![](icon.png)
+
+Icon made by [Freepik](https://www.flaticon.com/authors/freepik) from www.flaticon.com
 
 ## Overview
 ***EasyCL*** is an open heterogeneous computing library (*GPL v 3*) based on the [***OpenCL***](https://www.khronos.org/opencl/) specification. It's header-only library.
