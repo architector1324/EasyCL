@@ -24,7 +24,7 @@ namespace ecl{
         static const char* getErrorString();
 
     public:
-        static void checkError();
+        static void checkError(const char*);
     };
 
     class Platform : public Error{
@@ -41,7 +41,7 @@ namespace ecl{
         Platform() {};
         Platform(cl_platform_id);
 
-        const cl_device_id* getDevice(size_t, DEVICE) const;
+        cl_device_id getDevice(size_t, DEVICE) const;
 
         std::string getPlatformInfo(cl_platform_info) const;
         std::string getDeviceInfo(size_t, DEVICE, cl_device_info) const;
@@ -61,11 +61,11 @@ namespace ecl{
 
     class Program : public Error{
     private:
-        std::map<cl_context*, cl_program> program; // карта проргамм по контексту
+        std::map<cl_context, cl_program> program; // карта проргамм по контексту
         const char* program_source = nullptr; // указатель на исходный текст программы
         size_t program_source_length = 0; // длина исходного текста
 
-        const char* getBuildError(cl_context*, const cl_device_id*);
+        const char* getBuildError(cl_context, cl_device_id);
 
     public:
         Program(const char*);
@@ -73,20 +73,20 @@ namespace ecl{
 
         static const char* loadProgram(const char*);
 
-        const cl_program* getProgram(cl_context*) const; // получить указатель на программу
+        cl_program getProgram(cl_context) const; // получить указатель на программу
         const char* getProgramSource() const;
         size_t getProgramSourceLength() const;
 
         void setProgramSource(const char*, size_t);
 
-        bool checkProgram(cl_context*, const cl_device_id*); // проверить программу на контекст
+        bool checkProgram(cl_context, cl_device_id); // проверить программу на контекст
 
         ~Program();
     };
 
     class Kernel: public Error{
     private:
-        std::map<cl_program*, cl_kernel> kernel; // карта ядер по программам
+        std::map<cl_program, cl_kernel> kernel; // карта ядер по программам
         const char* name = nullptr; // имя ядра
 
     public:
@@ -94,14 +94,14 @@ namespace ecl{
 
         void setKernelName(const char*);
 
-        const cl_kernel* getKernel(cl_program*) const; // получить указатель на ядро
-        bool checkKernel(cl_program*); // проверить ядро на прграмму
+        cl_kernel getKernel(cl_program) const; // получить указатель на ядро
+        bool checkKernel(cl_program); // проверить ядро на прграмму
         ~Kernel();
     };
 
     class ArgumentBase : public Error{
     protected:
-        std::map<cl_context*, cl_mem> buffer; // карта буферов по контексту
+        std::map<cl_context, cl_mem> buffer; // карта буферов по контексту
         void* data_ptr = nullptr; // указатель на массив данных
         size_t data_size = 0; // размер массива данных
         cl_mem_flags memory_type = 0; // тип используемой памяти
@@ -114,9 +114,9 @@ namespace ecl{
         void* getDataPtr();
         size_t getDataSize() const;
         cl_mem_flags getMemoryType() const;
-        const cl_mem* getBuffer(cl_context*) const; // получить указатель на буфер по контексту
+        cl_mem getBuffer(cl_context) const; // получить указатель на буфер по контексту
 
-        bool checkBuffer(cl_context*); // проверить buffer на контекст
+        bool checkBuffer(cl_context); // проверить buffer на контекст
 
         void setDataPtr(void*);
         void setDataSize(size_t);
@@ -170,22 +170,22 @@ namespace ecl{
 
     class Computer : public Error{
         private:
-            const cl_device_id* device; // указатель на привязанное устройство
+            cl_device_id device = nullptr; // указатель на привязанное устройство
 
-            cl_context context; // opencl контекст
-            cl_command_queue queue; // очередь запросов на привязанное устройство
+            cl_context context = nullptr; // opencl контекст
+            cl_command_queue queue = nullptr; // очередь запросов на привязанное устройство
 
         public:
             Computer(size_t, const Platform*, DEVICE);
 
             void sendData(std::vector<ArgumentBase*>); // отправить данные на устройство
             // выполнить программу на устройстве
-            void compute(Program&, Kernel&, std::vector<ArgumentBase*>, std::vector<size_t>, std::vector<size_t>);
-            void compute(Program&, Kernel&, std::vector<ArgumentBase*>, std::vector<size_t>);
+            void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&, const std::vector<size_t>&);
+            void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&);
 
-            const cl_device_id* getDevice() const;
-            const cl_context* getContext() const;
-            const cl_command_queue* getQueue() const;
+            cl_device_id getDevice() const;
+            cl_context getContext() const;
+            cl_command_queue getQueue() const;
             
             void receiveData(std::vector<ArgumentBase*>); // получить данные с устройства
             ~Computer();
@@ -199,7 +199,7 @@ namespace ecl{
 
             bool readed = false;
         public:
-            Thread(Program&, Kernel&, std::vector<ArgumentBase*>, Computer*);
+            Thread(Program&, Kernel&, const std::vector<ArgumentBase*>&, Computer*);
             void join();
             ~Thread();
     };
@@ -209,8 +209,8 @@ namespace ecl{
     // Error
     int Error::error = 0;
 
-    void Error::checkError(){
-        if (error != 0) throw std::runtime_error(getErrorString());
+    void Error::checkError(const char* where){
+        if (error != 0) throw std::runtime_error(std::string(where) + ": " + getErrorString());
     }
 
     const char* Error::getErrorString(){
@@ -422,7 +422,7 @@ namespace ecl{
             cl_device_id temp[MAX_DEVICES_COUNT];
 
             error = clGetDeviceIDs(platform, type, count, temp, nullptr);
-            checkError();
+            checkError("Platform [init]");
 
             for(size_t i = 0; i < count; i++) devs.push_back(temp[i]);
         }
@@ -431,7 +431,7 @@ namespace ecl{
     void Platform::freeDevices(std::vector<cl_device_id>& devs){
         for(auto& d : devs){
             error = clReleaseDevice(d);
-            checkError();
+            checkError("Platform [free]");
         }
     }
 
@@ -442,7 +442,7 @@ namespace ecl{
         initDevices(accs, CL_DEVICE_TYPE_ACCELERATOR);
     }
 
-    const cl_device_id* Platform::getDevice(size_t i, DEVICE type) const{
+    cl_device_id Platform::getDevice(size_t i, DEVICE type) const{
         cl_uint count = 0;
         const cl_device_id* dev;
 
@@ -459,28 +459,28 @@ namespace ecl{
 
         if(i >= count) throw std::runtime_error("invalid device");
 
-        return dev + i;
+        return dev[i];
     }
 
     std::string Platform::getPlatformInfo(cl_platform_info info) const{
         size_t info_size;
 
         error = clGetPlatformInfo(platform, info, 0, nullptr, &info_size);
-        checkError();
+        checkError("Platform [get info]");
 
         char info_src[MAX_INFO_SIZE];
         error = clGetPlatformInfo(platform, info, info_size, info_src, nullptr);
-        checkError();
+        checkError("Platform [get info]");
 
         return info_src;
     }
 
     std::string Platform::getDeviceInfo(size_t i, DEVICE type, cl_device_info info) const{
         size_t info_size;
-        cl_device_id device = *getDevice(i, type);
+        cl_device_id device = getDevice(i, type);
 
         error = clGetDeviceInfo(device, info, 0, nullptr, &info_size);
-        checkError();
+        checkError("Platform [get device info]");
 
         bool is_char = (info == CL_DEVICE_EXTENSIONS) |
                        (info == CL_DEVICE_NAME) |
@@ -492,7 +492,7 @@ namespace ecl{
         if(is_char){
             char info_src[MAX_INFO_SIZE];
             error = clGetDeviceInfo(device, info, info_size, info_src, nullptr);
-            checkError();
+            checkError("Platform [get device info]");
 
             return info_src;
         }
@@ -500,7 +500,7 @@ namespace ecl{
         if(info == CL_DEVICE_MAX_WORK_ITEM_SIZES){
             size_t info_src[3];
             error = clGetDeviceInfo(device, info, info_size, info_src, nullptr);
-            checkError();
+            checkError("Platform [get device info]");
 
             return std::to_string(info_src[0]) + ", " + 
                    std::to_string(info_src[1]) + ", " + std::to_string(info_src[2]);
@@ -508,7 +508,7 @@ namespace ecl{
 
         cl_uint info_src;
         error = clGetDeviceInfo(device, info, info_size, &info_src, nullptr);
-        checkError();
+        checkError("Platform [get device info]");
 
         return std::to_string(info_src);
     }
@@ -527,12 +527,12 @@ namespace ecl{
         cl_uint count;
 
         error = clGetPlatformIDs(0, nullptr, &count);
-        checkError();
+        checkError("System [init]");
 
         if(count > 0){
             cl_platform_id temp[MAX_PLATFORMS_COUNT];
             error = clGetPlatformIDs(count, temp, nullptr);
-            checkError();
+            checkError("System [init]");
 
             for(size_t i = 0; i < count; i++) platforms.push_back(new Platform(temp[i]));
         }
@@ -549,12 +549,12 @@ namespace ecl{
     }
 
     // Program
-    const char* Program::getBuildError(cl_context* context, const cl_device_id* device){
+    const char* Program::getBuildError(cl_context context, cl_device_id device){
         size_t info_size;
-        clGetProgramBuildInfo(program.at(context), *device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &info_size);
+        clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &info_size);
 
         char* info = new char[info_size];
-        clGetProgramBuildInfo(program.at(context), *device, CL_PROGRAM_BUILD_LOG, info_size, info, nullptr);
+        clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, info_size, info, nullptr);
 
         return info;
     }
@@ -582,8 +582,8 @@ namespace ecl{
         return result;
     }
 
-    const cl_program* Program::getProgram(cl_context* context) const{
-        return &program.at(context);
+    cl_program Program::getProgram(cl_context context) const{
+        return program.at(context);
     }
     const char* Program::getProgramSource() const{
         return program_source;
@@ -600,10 +600,10 @@ namespace ecl{
         else throw std::runtime_error("unable to change program until it's using");
     }
 
-    bool Program::checkProgram(cl_context* context, const cl_device_id* device){
+    bool Program::checkProgram(cl_context context, cl_device_id device){
         if(program.find(context) == program.end()){
-            program.emplace(context, clCreateProgramWithSource(*context, 1, (const char**)&program_source, (const size_t*)&program_source_length, &error));
-            checkError();
+            program.emplace(context, clCreateProgramWithSource(context, 1, (const char**)&program_source, (const size_t*)&program_source_length, &error));
+            checkError("Program [check]");
 
             error = clBuildProgram(program.at(context), 0, nullptr, nullptr, nullptr, nullptr);
             if(error != 0) throw std::runtime_error(getBuildError(context, device));
@@ -627,13 +627,13 @@ namespace ecl{
         else throw std::runtime_error("unable to change kernel name until it's using");
     }
 
-    const cl_kernel* Kernel::getKernel(cl_program* program) const{
-        return &kernel.at(program);
+    cl_kernel Kernel::getKernel(cl_program program) const{
+        return kernel.at(program);
     }
-    bool Kernel::checkKernel(cl_program* program){
+    bool Kernel::checkKernel(cl_program program){
         if(kernel.find(program) == kernel.end()){
-            kernel.emplace(program, clCreateKernel(*program, name, &error));
-            checkError();
+            kernel.emplace(program, clCreateKernel(program, name, &error));
+            checkError("Kernel [check]");
             return false;
         }
         return true;
@@ -666,14 +666,14 @@ namespace ecl{
     cl_mem_flags ArgumentBase::getMemoryType() const{
         return memory_type;
     }
-    const cl_mem* ArgumentBase::getBuffer(cl_context* context) const{
-        return &buffer.at(context);
+    cl_mem ArgumentBase::getBuffer(cl_context context) const{
+        return buffer.at(context);
     }
 
-    bool ArgumentBase::checkBuffer(cl_context* context){
+    bool ArgumentBase::checkBuffer(cl_context context){
         if(buffer.find(context) == buffer.end()){
-            buffer.emplace(context, clCreateBuffer(*context, memory_type, data_size, nullptr, &error));
-            checkError();
+            buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
+            checkError("Buffer [check]");
 
             return false;
         }
@@ -697,7 +697,7 @@ namespace ecl{
     }
 
     ArgumentBase::~ArgumentBase(){
-        for(const std::pair<cl_context*, cl_mem>& p : buffer) clReleaseMemObject(p.second);
+        for(const std::pair<cl_context, cl_mem>& p : buffer) clReleaseMemObject(p.second);
     }
 
     // Variable
@@ -827,118 +827,32 @@ namespace ecl{
     Computer::Computer(size_t i, const Platform* platform, DEVICE dev){
         device = platform->getDevice(i, dev);
 
-        context = clCreateContext(nullptr, 1, device, nullptr, nullptr, &error);
-        checkError();
+        context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &error);
+        checkError("Computer [init]");
 
-        queue = clCreateCommandQueue(context, *device, 0, &error);
-        checkError();
+        queue = clCreateCommandQueue(context, device, 0, &error);
+        checkError("Computer [init]");
     }
 
     void Computer::sendData(std::vector<ArgumentBase*> args){
         size_t count = args.size();
         for(size_t i(0); i < count; i++){
             ArgumentBase* curr = args.at(i);
-            curr->checkBuffer(&context);
+            curr->checkBuffer(context);
 
-            error = clEnqueueWriteBuffer(queue, *curr->getBuffer(&context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
-            checkError();
+            error = clEnqueueWriteBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
+            checkError("Computer [send data]");
         }
         error = clFinish(queue);
-        checkError();
+        checkError("Computer [send data]");
     }
 
-    void Computer::compute(Program& prog, Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size){
-        prog.checkProgram(&context, device);
-        cl_program* prog_program = const_cast<cl_program*>(prog.getProgram(&context));
-        
-        kern.checkKernel(prog_program);
-        cl_kernel kern_kernel = *kern.getKernel(prog_program);
-
-        size_t count = args.size();
-        for (size_t i(0); i < count; i++) {
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(&context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
-
-            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), curr->getBuffer(&context));
-            checkError();
-        }
-
-        error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
-        checkError();
-        
-        error = clFinish(queue);
-        checkError();
-    }
-    void Computer::compute(Program& prog, Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size){
-        prog.checkProgram(&context, device);
-        cl_program* prog_program = const_cast<cl_program*>(prog.getProgram(&context));
-        
-        kern.checkKernel(prog_program);
-        cl_kernel kern_kernel = *kern.getKernel(prog_program);
-
-        size_t count = args.size();
-        for (size_t i(0); i < count; i++) {
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(&context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
-
-            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), curr->getBuffer(&context));
-            checkError();
-        }
-
-        error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
-        checkError();
-        
-        error = clFinish(queue);
-        checkError();
-    }
-
-    const cl_device_id* Computer::getDevice() const{
-        return device;
-    }
-    const cl_context* Computer::getContext() const{
-        return &context;
-    }
-    const cl_command_queue* Computer::getQueue() const{
-        return &queue;
-    }
-
-    void Computer::receiveData(std::vector<ArgumentBase*> args){
-        size_t count = args.size();
-        for(size_t i(0); i < count; i++){
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(&context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
-
-            error = clEnqueueReadBuffer(queue, *curr->getBuffer(&context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
-            checkError();
-        }
-        error = clFinish(queue);
-        checkError();
-    }
-
-    Computer::~Computer(){
-        error = clReleaseCommandQueue(queue);
-        checkError();
-        error = clReleaseContext(context);
-        checkError();
-    }
-
-    // Thread
-    Thread::Thread(Program& prog, Kernel& kern, std::vector<ArgumentBase*> args, Computer* video){
-        this->video = video;
-        this->args = args;
-
-        cl_context* context = const_cast<cl_context*>(video->getContext());
-        const cl_device_id* device = video->getDevice();
-        cl_command_queue queue = *video->getQueue();
-
+    void Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size){
         prog.checkProgram(context, device);
-        cl_program* prog_program = const_cast<cl_program*>(prog.getProgram(context));
+        cl_program prog_program = prog.getProgram(context);
         
         kern.checkKernel(prog_program);
-        cl_kernel kern_kernel = *kern.getKernel(prog_program);
+        cl_kernel kern_kernel = kern.getKernel(prog_program);
 
         size_t count = args.size();
         for (size_t i(0); i < count; i++) {
@@ -946,23 +860,112 @@ namespace ecl{
             bool sended = curr->checkBuffer(context);
             if(!sended) throw std::runtime_error("argument wasn't sent to computer");
 
-            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), curr->getBuffer(context));
-            checkError();
+            cl_mem buf = curr->getBuffer(context);
+            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
+            checkError("Computer [compute]");
+        }
+
+        error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
+        checkError("Computer [compute]");
+        
+        error = clFinish(queue);
+        checkError("Computer [compute]");
+    }
+    void Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size){
+        prog.checkProgram(context, device);
+        cl_program prog_program = prog.getProgram(context);
+        
+        kern.checkKernel(prog_program);
+        cl_kernel kern_kernel = kern.getKernel(prog_program);
+
+        size_t count = args.size();
+        for (size_t i(0); i < count; i++) {
+            ArgumentBase* curr = args.at(i);
+            bool sended = curr->checkBuffer(context);
+            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+
+            cl_mem buf = curr->getBuffer(context);
+            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
+            checkError("Computer [compute]");
+        }
+
+        error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
+        checkError("Computer [compute]");
+        
+        error = clFinish(queue);
+        checkError("Computer [compute]");
+    }
+
+    cl_device_id Computer::getDevice() const{
+        return device;
+    }
+    cl_context Computer::getContext() const{
+        return context;
+    }
+    cl_command_queue Computer::getQueue() const{
+        return queue;
+    }
+
+    void Computer::receiveData(std::vector<ArgumentBase*> args){
+        size_t count = args.size();
+        for(size_t i(0); i < count; i++){
+            ArgumentBase* curr = args.at(i);
+            bool sended = curr->checkBuffer(context);
+            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+
+            error = clEnqueueReadBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
+            checkError("Computer [receive data]");
+        }
+        error = clFinish(queue);
+        checkError("Computer [receive data]");
+    }
+
+    Computer::~Computer(){
+        error = clReleaseCommandQueue(queue);
+        checkError("Computer [free]");
+        error = clReleaseContext(context);
+        checkError("Computer [free]");
+    }
+
+    // Thread
+    Thread::Thread(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, Computer* video){
+        this->video = video;
+        this->args = args;
+
+        cl_context context = video->getContext();
+        cl_device_id device = video->getDevice();
+        cl_command_queue queue = video->getQueue();
+
+        prog.checkProgram(context, device);
+        cl_program prog_program = prog.getProgram(context);
+        
+        kern.checkKernel(prog_program);
+        cl_kernel kern_kernel = kern.getKernel(prog_program);
+
+        size_t count = args.size();
+        for (size_t i(0); i < count; i++) {
+            ArgumentBase* curr = args.at(i);
+            bool sended = curr->checkBuffer(context);
+            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+
+            cl_mem buf = curr->getBuffer(context);
+            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
+            checkError("Thread [compute]");
         }
 
         error = clEnqueueTask(queue, kern_kernel, 0, nullptr, &sync);
-        checkError();
+        checkError("Thread [compute]");
     }
     void Thread::join(){
         error = clWaitForEvents(1, &sync);
-        checkError();
+        checkError("Thread [join]");
 
         video->receiveData(args);
         readed = true;
     }
     Thread::~Thread(){
         clReleaseEvent(sync);
-        checkError();
+        checkError("Thread [free]");
         if(!readed) video->receiveData(args);
     }
 }
