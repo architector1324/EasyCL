@@ -216,16 +216,16 @@ ecl::DEVICE::ACCEL; // Accelerator
 
 Sending data to Device:
 ```c++
-void sendData(std::vector<ArgumentBase*> args);
+void sendData(const std::vector<ArgumentBase*>& args);
 ```
 Receiving data from Device:
 ```c++
-void receiveData(std::vector<ArgumentBase*> args);
+void receiveData(const std::vector<ArgumentBase*>& args);
 ```
 Execute program on Device (SIMD):
 ```c++
-void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size);
-void compute(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, std::vector<size_t> global_work_size, std::vector<size_t> local_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);
 ```
 
 #### Threads
@@ -233,7 +233,7 @@ A thread is an abstraction of a thread on an executable device. After creating a
 
 Execute program on Device (Single thread):
 ```c++
-ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, std::vector<ArgumentBase*> args, ecl::Computer* video);
+ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, ecl::Computer* video);
 ```
 Sync single threads:
 ```c++

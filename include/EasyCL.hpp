@@ -71,6 +71,9 @@ namespace ecl{
         Program(const char*);
         Program(const char*, size_t);
 
+        Program(Program&&);
+        Program& operator=(Program&&);
+
         static const char* loadProgram(const char*);
 
         cl_program getProgram(cl_context) const; // получить указатель на программу
@@ -92,6 +95,9 @@ namespace ecl{
     public:
         Kernel(const char*);
 
+        Kernel(Kernel&&);
+        Kernel& operator=(Kernel&&);
+
         void setKernelName(const char*);
 
         cl_kernel getKernel(cl_program) const; // получить указатель на ядро
@@ -111,6 +117,9 @@ namespace ecl{
         ArgumentBase(const void*, size_t);
         ArgumentBase(void*, size_t, cl_mem_flags);
 
+        ArgumentBase(ArgumentBase&&);
+        ArgumentBase& operator=(ArgumentBase&&);
+
         void* getDataPtr();
         size_t getDataSize() const;
         cl_mem_flags getMemoryType() const;
@@ -128,11 +137,14 @@ namespace ecl{
     template <typename T> class Variable : public ArgumentBase{
         private:
             T local_value;
-            CONTROL control;
+            CONTROL control = CONTROL::FREE;
         public:
             Variable(const T&);
             Variable(ACCESS);
             Variable(const T&, ACCESS);
+
+            Variable(Variable<T>&& other);
+            Variable& operator=(Variable<T>&& other);
 
             const T& getValue() const;
             void setValue(const T&);
@@ -150,12 +162,15 @@ namespace ecl{
 
     template <typename T> class Array : public ArgumentBase{
         private:
-            CONTROL control;
+            CONTROL control = CONTROL::FREE;
         public:
             Array(size_t);
             Array(size_t, ACCESS);
             Array(const T*, size_t, CONTROL control = FREE);
             Array(T*, size_t, ACCESS, CONTROL control = FREE);
+
+            Array(Array<T>&& other);
+            Array& operator=(Array<T>&& other);
 
             const T* getConstArray() const;
             T* getArray();
@@ -568,6 +583,30 @@ namespace ecl{
         program_source_length = strnlen(src, 65535);
     }
 
+    Program::Program(Program&& other){
+        program = other.program;
+        program_source = other.program_source;
+        program_source_length = other.program_source_length;
+
+        other.program.clear();
+        other.program_source = nullptr;
+        other.program_source_length = 0;
+    }
+    Program& Program::operator=(Program&& other){
+        if(program.size() > 0) throw std::runtime_error("Program [move]: program is in using");
+        
+        program = other.program;
+        program_source = other.program_source;
+        program_source_length = other.program_source_length;
+
+        other.program.clear();
+        other.program_source = nullptr;
+        other.program_source_length = 0;
+
+        return *this;
+    }
+
+
     const char* Program::loadProgram(const char* filename){
         std::ifstream f(filename, std::ios::binary);
         if(!f.is_open()) throw std::runtime_error("wrong program filename");
@@ -622,6 +661,25 @@ namespace ecl{
         this->name = name;
     }
 
+    Kernel::Kernel(Kernel&& other){
+        kernel = other.kernel;
+        name = other.name;
+
+        other.kernel.clear();
+        other.name = nullptr;
+    }
+    Kernel& Kernel::operator=(Kernel&& other){
+        if(kernel.size() > 0) throw std::runtime_error("Kernel [move]: kernel is in using");
+        
+        kernel = other.kernel;
+        name = other.name;
+
+        other.kernel.clear();
+        other.name = nullptr;
+
+        return *this;
+    }
+
     void Kernel::setKernelName(const char* name){
         if(kernel.size() == 0) this->name = name;
         else throw std::runtime_error("unable to change kernel name until it's using");
@@ -657,6 +715,33 @@ namespace ecl{
         this->memory_type = memory_type;
     }
 
+    ArgumentBase::ArgumentBase(ArgumentBase&& other){
+        buffer = other.buffer;
+        data_ptr = other.data_ptr;
+        data_size = other.data_size;
+        memory_type = other.memory_type;
+
+        other.buffer.clear();
+        other.data_ptr = nullptr;
+        other.data_size = 0;
+        other.memory_type = 0;
+    }
+    ArgumentBase& ArgumentBase::operator=(ArgumentBase&& other){
+        if(buffer.size() > 0) throw std::runtime_error("ArgumentBase [move]: buffer is in using");
+        
+        buffer = other.buffer;
+        data_ptr = other.data_ptr;
+        data_size = other.data_size;
+        memory_type = other.memory_type;
+
+        other.buffer.clear();
+        other.data_ptr = nullptr;
+        other.data_size = 0;
+        other.memory_type = 0;
+
+        return *this;
+    }
+
     void* ArgumentBase::getDataPtr(){
         return data_ptr;
     }
@@ -673,7 +758,7 @@ namespace ecl{
     bool ArgumentBase::checkBuffer(cl_context context){
         if(buffer.find(context) == buffer.end()){
             buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
-            checkError("Buffer [check]");
+            checkError("ArgumentBase [check]");
 
             return false;
         }
@@ -716,6 +801,31 @@ namespace ecl{
     Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(nullptr, sizeof(T), memory_access){
         local_value = value;
         this->setDataPtr(&local_value);
+    }
+
+    template <typename T>
+    Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other)){
+        local_value = std::move(other.local_value);
+        control = std::move(other.control);
+        setDataPtr(&local_value);
+    }
+
+    template <typename T>
+    Variable<T>& Variable<T>::operator=(Variable<T>&& other){
+        local_value = std::move(other.local_value);
+        control = other.control;
+        setDataPtr(&local_value);
+
+        buffer = other.buffer;
+        data_size = other.data_size;
+        memory_type = other.memory_type;
+
+        other.buffer.clear();
+        other.data_ptr = nullptr;
+        other.data_size = 0;
+        other.memory_type = 0;
+
+        return *this;
     }
 
     template <typename T>
@@ -775,6 +885,28 @@ namespace ecl{
         this->control = BIND;
         T* temp = new T[array_size];
         setDataPtr(temp);
+    }
+
+    template <typename T>
+    Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
+        control = std::move(other.control);
+    }
+
+    template <typename T>
+    Array<T>& Array<T>::operator=(Array<T>&& other){
+        control = other.control;
+
+        buffer = other.buffer;
+        data_ptr = other.data_ptr;
+        data_size = other.data_size;
+        memory_type = other.memory_type;
+
+        other.buffer.clear();
+        other.data_ptr = nullptr;
+        other.data_size = 0;
+        other.memory_type = 0;
+
+        return *this;
     }
 
     template <typename T>
