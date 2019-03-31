@@ -11,7 +11,9 @@ int main(){
 
     video.sendData({&a});
     video.compute(prog, kern, {&a}, {12}, {3});
-    video.receiveData({&a});
+    video.grabData({&a});
+
+    std::cout << a << std::endl;
 
     for(size_t i = 0; i < 12; i++)
         std::cout << a[i] << " ";

@@ -21,10 +21,10 @@ namespace ecl{
     class Error{
     protected:
         static int error;
-        static const char* getErrorString();
+        static std::string getErrorString();
 
     public:
-        static void checkError(const char*);
+        static void checkError(const std::string&);
     };
 
     class Platform : public Error{
@@ -61,28 +61,40 @@ namespace ecl{
 
     class Program : public Error{
     private:
-        std::map<cl_context, cl_program> program; // карта проргамм по контексту
-        const char* program_source = nullptr; // указатель на исходный текст программы
-        size_t program_source_length = 0; // длина исходного текста
+        std::map<cl_context, cl_program> program;
+        std::string source;
 
-        const char* getBuildError(cl_context, cl_device_id);
-
+        std::string getBuildError(cl_context, cl_device_id);
     public:
         Program(const char*);
-        Program(const char*, size_t);
+        Program(const std::string&);
+
+        Program(const Program&);
+        Program& operator=(const Program&);
 
         Program(Program&&);
         Program& operator=(Program&&);
 
-        static const char* loadProgram(const char*);
+        static std::string loadProgram(const std::string&);
 
-        cl_program getProgram(cl_context) const; // получить указатель на программу
-        const char* getProgramSource() const;
-        size_t getProgramSourceLength() const;
+        cl_program getProgram(cl_context) const;
+        const std::string& getSource() const;
 
-        void setProgramSource(const char*, size_t);
+        Program& operator=(const std::string&);
+        Program& operator=(const char*);
 
-        bool checkProgram(cl_context, cl_device_id); // проверить программу на контекст
+        Program& operator+=(const std::string&);
+        Program& operator+=(const char*);
+        Program& operator+=(const Program&);
+
+        Program operator+(const std::string&);
+        Program operator+(const char*);
+        Program operator+(const Program&);
+        friend std::ostream& operator<<(std::ostream&, const Program&);
+
+        void setSource(const std::string&);
+
+        bool checkProgram(cl_context, cl_device_id);
 
         ~Program();
     };
@@ -90,15 +102,32 @@ namespace ecl{
     class Kernel: public Error{
     private:
         std::map<cl_program, cl_kernel> kernel; // карта ядер по программам
-        const char* name = nullptr; // имя ядра
+        std::string name;
 
     public:
         Kernel(const char*);
+        Kernel(const std::string&);
+
+        Kernel(const Kernel&);
+        Kernel& operator=(const Kernel&);
 
         Kernel(Kernel&&);
         Kernel& operator=(Kernel&&);
 
-        void setKernelName(const char*);
+        Kernel& operator=(const std::string&);
+        Kernel& operator=(const char*);
+
+        Kernel& operator+=(const std::string&);
+        Kernel& operator+=(const char*);
+        Kernel& operator+=(const Kernel&);
+
+        Kernel operator+(const std::string&);
+        Kernel operator+(const char*);
+        Kernel operator+(const Kernel&);
+        friend std::ostream& operator<<(std::ostream&, const Kernel&);
+
+        void setName(const std::string&);
+        const std::string& getName() const;
 
         cl_kernel getKernel(cl_program) const; // получить указатель на ядро
         bool checkKernel(cl_program); // проверить ядро на прграмму
@@ -131,6 +160,8 @@ namespace ecl{
         void setDataSize(size_t);
         void setMemoryType(cl_mem_flags);
 
+        void clearBuffer(cl_context);
+
         ~ArgumentBase();
     };
 
@@ -139,43 +170,71 @@ namespace ecl{
             T local_value;
             CONTROL control = CONTROL::FREE;
         public:
+            Variable();
             Variable(const T&);
             Variable(ACCESS);
             Variable(const T&, ACCESS);
 
-            Variable(Variable<T>&& other);
-            Variable& operator=(Variable<T>&& other);
+            Variable(const Variable<T>&);
+            Variable<T>& operator=(const Variable<T>&);
+
+            Variable(Variable<T>&&);
+            Variable<T>& operator=(Variable<T>&&);
 
             const T& getValue() const;
             void setValue(const T&);
 
-            const T& operator++(int);
-            const T& operator--(int);
-            const T& operator=(const T&);
-            const T& operator+=(const T&);
-            const T& operator-=(const T&);
-            const T& operator*=(const T&);
-            const T& operator/=(const T&);
+            const Variable<T>& operator++(int);
+            const Variable<T>& operator--(int);
+            const Variable<T>& operator=(const T&);
+            const Variable<T>& operator+=(const T&);
+            const Variable<T>& operator-=(const T&);
+            const Variable<T>& operator*=(const T&);
+            const Variable<T>& operator/=(const T&);
+            bool operator==(const T&) const;
+            Variable<T> operator+(const T&);
+            Variable<T> operator-(const T&);
+            Variable<T> operator*(const T&);
+            Variable<T> operator/(const T&);
 
-            ~Variable(){}
+            const Variable<T>& operator+=(const Variable<T>&);
+            const Variable<T>& operator-=(const Variable<T>&);
+            const Variable<T>& operator*=(const Variable<T>&);
+            const Variable<T>& operator/=(const Variable<T>&);
+            bool operator==(const Variable<T>&) const;
+            Variable<T> operator+(const Variable<T>&);
+            Variable<T> operator-(const Variable<T>&);
+            Variable<T> operator*(const Variable<T>&);
+            Variable<T> operator/(const Variable<T>&);
+
+            template <typename U>
+            friend std::ostream& operator <<(std::ostream&, const Variable<U>&);
+
+            ~Variable();
     };
 
     template <typename T> class Array : public ArgumentBase{
         private:
             CONTROL control = CONTROL::FREE;
         public:
+            Array();
             Array(size_t);
             Array(size_t, ACCESS);
             Array(const T*, size_t, CONTROL control = FREE);
             Array(T*, size_t, ACCESS, CONTROL control = FREE);
 
-            Array(Array<T>&& other);
-            Array& operator=(Array<T>&& other);
+            Array(const Array<T>&);
+            Array<T>& operator=(const Array<T>&);
+
+            Array(Array<T>&&);
+            Array<T>& operator=(Array<T>&&);
 
             const T* getConstArray() const;
             T* getArray();
 
             T& operator[](size_t i);
+            template <typename U>
+            friend std::ostream& operator <<(std::ostream&, const Array<U>&);
 
             void setArray(const T*, size_t);
             void setArray(T*, size_t, ACCESS);
@@ -193,7 +252,7 @@ namespace ecl{
         public:
             Computer(size_t, const Platform*, DEVICE);
 
-            void sendData(std::vector<ArgumentBase*>); // отправить данные на устройство
+            void sendData(const std::vector<ArgumentBase*>&); // отправить данные на устройство
             // выполнить программу на устройстве
             void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&, const std::vector<size_t>&);
             void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&);
@@ -201,8 +260,11 @@ namespace ecl{
             cl_device_id getDevice() const;
             cl_context getContext() const;
             cl_command_queue getQueue() const;
-            
-            void receiveData(std::vector<ArgumentBase*>); // получить данные с устройства
+
+            void receiveData(const std::vector<ArgumentBase*>&); // получить данные с устройства
+            void clearData(const std::vector<ArgumentBase*>&);
+            void grabData(const std::vector<ArgumentBase*>&);
+
             ~Computer();
     };
 
@@ -224,11 +286,12 @@ namespace ecl{
     // Error
     int Error::error = 0;
 
-    void Error::checkError(const char* where){
-        if (error != 0) throw std::runtime_error(std::string(where) + ": " + getErrorString());
+    void Error::checkError(const std::string& where){
+        if (error != 0)
+            throw std::runtime_error(where + ": " + getErrorString());
     }
 
-    const char* Error::getErrorString(){
+    std::string Error::getErrorString(){
         switch (error){
         case -1:
             return "device not found";
@@ -564,7 +627,7 @@ namespace ecl{
     }
 
     // Program
-    const char* Program::getBuildError(cl_context context, cl_device_id device){
+    std::string Program::getBuildError(cl_context context, cl_device_id device){
         size_t info_size;
         clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &info_size);
 
@@ -574,49 +637,46 @@ namespace ecl{
         return info;
     }
 
-    Program::Program(const char* src, size_t len){
-        program_source = src;
-        program_source_length = len;
-    }
     Program::Program(const char* src){
-        program_source = src;
-        program_source_length = strnlen(src, 65535);
+        source = src;
+    }
+    Program::Program(const std::string& src){
+        source = src;
     }
 
-    Program::Program(Program&& other){
-        program = other.program;
-        program_source = other.program_source;
-        program_source_length = other.program_source_length;
-
-        other.program.clear();
-        other.program_source = nullptr;
-        other.program_source_length = 0;
+    Program::Program(const Program& other){
+        source = other.source;
     }
-    Program& Program::operator=(Program&& other){
-        if(program.size() > 0) throw std::runtime_error("Program [move]: program is in using");
-        
-        program = other.program;
-        program_source = other.program_source;
-        program_source_length = other.program_source_length;
-
-        other.program.clear();
-        other.program_source = nullptr;
-        other.program_source_length = 0;
+    Program& Program::operator=(const Program& other){
+        this->~Program();
+        source = other.source;
 
         return *this;
     }
 
+    Program::Program(Program&& other){
+        source = other.source;
+        program = std::move(other.program);
 
-    const char* Program::loadProgram(const char* filename){
+        other.~Program();
+    }
+    Program& Program::operator=(Program&& other){
+        this->~Program();
+        source = other.source;
+        program = std::move(other.program);
+
+        other.~Program();
+
+        return *this;
+    }
+
+    std::string Program::loadProgram(const std::string& filename){
         std::ifstream f(filename, std::ios::binary);
         if(!f.is_open()) throw std::runtime_error("wrong program filename");
 
-        std::string temp;
-        std::getline (f, temp, (char)f.eof());
+        std::string result;
+        std::getline (f, result, (char)f.eof());
         f.close();
-
-        char* result = new char[temp.length() + 1];
-        strncpy(result, temp.c_str(), temp.length() + 1);
 
         return result;
     }
@@ -624,24 +684,65 @@ namespace ecl{
     cl_program Program::getProgram(cl_context context) const{
         return program.at(context);
     }
-    const char* Program::getProgramSource() const{
-        return program_source;
-    }
-    size_t Program::getProgramSourceLength() const{
-        return program_source_length;
+    const std::string& Program::getSource() const{
+        return source;
     }
 
-    void Program::setProgramSource(const char* src, size_t len){
+    void Program::setSource(const std::string& src){
         if(program.size() == 0){
-            this->program_source = src;
-            this->program_source_length = len;
+            source = src;
         }
         else throw std::runtime_error("unable to change program until it's using");
     }
 
+    Program& Program::operator=(const std::string& src){
+        setSource(src);
+        return *this;
+    }
+    Program& Program::operator=(const char* src){
+        setSource(src);
+        return *this;
+    }
+
+    Program& Program::operator+=(const std::string& src){
+        setSource(source + src);
+        return *this;
+    }
+    Program& Program::operator+=(const char* src){
+        setSource(source + src);
+        return *this;
+    }
+    Program& Program::operator+=(const Program& other){
+        setSource(source + other.source);
+        return *this;
+    }
+
+    Program Program::operator+(const std::string& src){
+        Program result(*this);
+        result += src;
+        return result;
+    }
+    Program Program::operator+(const char* src){
+        Program result(*this);
+        result += src;
+        return result;
+    }
+    Program Program::operator+(const Program& other){
+        Program result(*this);
+        result += other;
+        return result;
+    }
+    std::ostream& operator<<(std::ostream& s, const Program& other){
+        s << other.getSource();
+        return s;
+    }
+
     bool Program::checkProgram(cl_context context, cl_device_id device){
         if(program.find(context) == program.end()){
-            program.emplace(context, clCreateProgramWithSource(context, 1, (const char**)&program_source, (const size_t*)&program_source_length, &error));
+            const char* src = source.c_str();
+            size_t len  = source.size();
+
+            program.emplace(context, clCreateProgramWithSource(context, 1, (const char**)&src, (const size_t*)&len, &error));
             checkError("Program [check]");
 
             error = clBuildProgram(program.at(context), 0, nullptr, nullptr, nullptr, nullptr);
@@ -654,43 +755,97 @@ namespace ecl{
 
     Program::~Program(){
         for(const auto& p : program) clReleaseProgram(p.second);
+        program.clear();
+        source.clear();
     }
 
     // Kernel
     Kernel::Kernel(const char* name){
         this->name = name;
     }
-
-    Kernel::Kernel(Kernel&& other){
-        kernel = other.kernel;
-        name = other.name;
-
-        other.kernel.clear();
-        other.name = nullptr;
+    Kernel::Kernel(const std::string& name){
+        this->name = name;
     }
-    Kernel& Kernel::operator=(Kernel&& other){
-        if(kernel.size() > 0) throw std::runtime_error("Kernel [move]: kernel is in using");
-        
-        kernel = other.kernel;
-        name = other.name;
 
-        other.kernel.clear();
-        other.name = nullptr;
+    Kernel::Kernel(const Kernel& other){
+        name = other.name;
+    }
+    Kernel& Kernel::operator=(const Kernel& other){
+        this->~Kernel();
+        name = other.name;
 
         return *this;
     }
 
-    void Kernel::setKernelName(const char* name){
+    Kernel::Kernel(Kernel&& other){
+        name = other.name;
+        kernel = std::move(other.kernel);
+
+        other.~Kernel();
+    }
+    Kernel& Kernel::operator=(Kernel&& other){
+        this->~Kernel();
+        name = other.name;
+        kernel = std::move(other.kernel);
+
+        other.~Kernel();
+
+        return *this;
+    }
+
+    void Kernel::setName(const std::string& name){
         if(kernel.size() == 0) this->name = name;
         else throw std::runtime_error("unable to change kernel name until it's using");
     }
+    Kernel& Kernel::operator=(const std::string& src){
+        setName(src);
+        return *this;
+    }
+    Kernel& Kernel::operator=(const char* src){
+        setName(src);
+        return *this;
+    }
+
+    Kernel& Kernel::operator+=(const std::string& src){
+        setName(name + src);
+        return *this;
+    }
+    Kernel& Kernel::operator+=(const char* src){
+        setName(name + src);
+        return *this;
+    }
+    Kernel& Kernel::operator+=(const Kernel& other){
+        setName(name + other.name);
+        return *this;
+    }
+
+    Kernel Kernel::operator+(const std::string& src){
+        Kernel result(*this);
+        result += src;
+        return result;
+    }
+    Kernel Kernel::operator+(const char* src){
+        Kernel result(*this);
+        result += src;
+        return result;
+    }
+    Kernel Kernel::operator+(const Kernel& other){
+        Kernel result(*this);
+        result += other;
+        return result;
+    }
+    std::ostream& operator<<(std::ostream& s, const Kernel& other){
+        s << other.name;
+        return s;
+    }
+
 
     cl_kernel Kernel::getKernel(cl_program program) const{
         return kernel.at(program);
     }
     bool Kernel::checkKernel(cl_program program){
         if(kernel.find(program) == kernel.end()){
-            kernel.emplace(program, clCreateKernel(program, name, &error));
+            kernel.emplace(program, clCreateKernel(program, name.c_str(), &error));
             checkError("Kernel [check]");
             return false;
         }
@@ -699,6 +854,7 @@ namespace ecl{
 
     Kernel::~Kernel(){
         for(const auto& p : kernel) clReleaseKernel(p.second);
+        name.clear();
     }
 
     // ArgumentBase
@@ -708,7 +864,6 @@ namespace ecl{
         this->data_size = data_size;
         memory_type = CL_MEM_READ_ONLY;
     }
-
     ArgumentBase::ArgumentBase(void* data_ptr, size_t data_size, cl_mem_flags memory_type){
         this->data_ptr = data_ptr;
         this->data_size = data_size;
@@ -716,28 +871,22 @@ namespace ecl{
     }
 
     ArgumentBase::ArgumentBase(ArgumentBase&& other){
-        buffer = other.buffer;
-        data_ptr = other.data_ptr;
         data_size = other.data_size;
+        data_ptr = other.data_ptr;
         memory_type = other.memory_type;
+        buffer = std::move(other.buffer);
 
-        other.buffer.clear();
-        other.data_ptr = nullptr;
-        other.data_size = 0;
-        other.memory_type = 0;
+        other.~ArgumentBase();
     }
     ArgumentBase& ArgumentBase::operator=(ArgumentBase&& other){
-        if(buffer.size() > 0) throw std::runtime_error("ArgumentBase [move]: buffer is in using");
-        
-        buffer = other.buffer;
-        data_ptr = other.data_ptr;
-        data_size = other.data_size;
-        memory_type = other.memory_type;
+        this->~ArgumentBase();
 
-        other.buffer.clear();
-        other.data_ptr = nullptr;
-        other.data_size = 0;
-        other.memory_type = 0;
+        data_size = other.data_size;
+        data_ptr = other.data_ptr;
+        memory_type = other.memory_type;
+        buffer = std::move(other.buffer);
+
+        other.~ArgumentBase();
 
         return *this;
     }
@@ -781,50 +930,77 @@ namespace ecl{
         else throw std::runtime_error("unable to change array memory type until it's using");
     }
 
+    void ArgumentBase::clearBuffer(cl_context context){
+        auto it = buffer.find(context);
+        if(it != buffer.end()){
+            error = clReleaseMemObject(buffer.at(context));
+            buffer.erase(it);
+
+            checkError("ArgumentBase [clear]");
+        }
+    }
+
     ArgumentBase::~ArgumentBase(){
-        for(const std::pair<cl_context, cl_mem>& p : buffer) clReleaseMemObject(p.second);
+        for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
+        data_ptr = nullptr;
+        data_size = 0;
+        memory_type = 0;
+        buffer.clear();
     }
 
     // Variable
+    template<typename T>
+    Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T)){
+    }
     template <typename T>
-    Variable<T>::Variable(const T& value) : ArgumentBase(nullptr, sizeof(T)){
+    Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T)){
         local_value = value;
-        this->setDataPtr(&local_value);
     }
 
     template <typename T>
-    Variable<T>::Variable(ACCESS memory_access) : ArgumentBase(nullptr, sizeof(T), memory_access){
-        this->setDataPtr(&local_value);
+    Variable<T>::Variable(ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
     }
 
     template <typename T>
-    Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(nullptr, sizeof(T), memory_access){
+    Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
         local_value = value;
-        this->setDataPtr(&local_value);
+    }
+
+    template <typename T>
+    Variable<T>::Variable(const Variable<T>& other) : ArgumentBase(&local_value, other.data_size, other.memory_type){
+        local_value = other.local_value;
+    }
+    template <typename T>
+    Variable<T>& Variable<T>::operator=(const Variable<T>& other){
+        this->~Variable();
+
+        local_value = other.local_value;
+        data_ptr = &local_value;
+        data_size = other.data_size;
+        memory_type = other.memory_type;
+
+        return *this;
     }
 
     template <typename T>
     Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other)){
-        local_value = std::move(other.local_value);
-        control = std::move(other.control);
-        setDataPtr(&local_value);
-    }
+        local_value = other.local_value;
+        data_ptr = &local_value;
 
+        other.~Variable();
+    }
     template <typename T>
     Variable<T>& Variable<T>::operator=(Variable<T>&& other){
-        local_value = std::move(other.local_value);
-        control = other.control;
-        setDataPtr(&local_value);
+        this->~Variable();
 
-        buffer = other.buffer;
         data_size = other.data_size;
         memory_type = other.memory_type;
+        buffer = std::move(other.buffer);
 
-        other.buffer.clear();
-        other.data_ptr = nullptr;
-        other.data_size = 0;
-        other.memory_type = 0;
+        local_value = other.local_value;
+        data_ptr = &local_value;
 
+        other.~Variable();
         return *this;
     }
 
@@ -839,74 +1015,149 @@ namespace ecl{
     }
 
     template <typename T>
-    const T& Variable<T>::operator++(int){
-        return ++local_value;
+    const Variable<T>& Variable<T>::operator++(int){
+        ++local_value;
+        return *this;
     }
     template <typename T>
-    const T& Variable<T>::operator--(int){
-        return --local_value;
+    const Variable<T>& Variable<T>::operator--(int){
+        --local_value;
+        return *this;
     }
 
     template <typename T>
-    const T& Variable<T>::operator=(const T& value){
+    const Variable<T>& Variable<T>::operator=(const T& value){
         setValue(value);
-        return local_value;
+        return *this;
     }
     template <typename T>
-    const T& Variable<T>::operator+=(const T& value){
+    const Variable<T>& Variable<T>::operator+=(const T& value){
         setValue(local_value + value);
-        return local_value;
+        return *this;
     }
     template <typename T>
-    const T& Variable<T>::operator-=(const T& value){
+    const Variable<T>& Variable<T>::operator-=(const T& value){
         setValue(local_value - value);
-        return local_value;
+        return *this;
     }
     template <typename T>
-    const T& Variable<T>::operator*=(const T& value){
+    const Variable<T>& Variable<T>::operator*=(const T& value){
         setValue(local_value * value);
-        return local_value;
+        return *this;
     }
     template <typename T>
-    const T& Variable<T>::operator/=(const T& value){
+    const Variable<T>& Variable<T>::operator/=(const T& value){
         setValue(local_value / value);
-        return local_value;
+        return *this;
     }
+    template <typename T>
+    bool Variable<T>::operator==(const T& value) const{
+        return local_value == value;
+    }
+
+    template <typename T>
+    Variable<T> Variable<T>::operator+(const T& value){
+        Variable<T> result(*this);
+        result += value;
+        return result;
+    }
+    template <typename T>
+    Variable<T> Variable<T>::operator-(const T& value){
+        Variable<T> result(*this);
+        result -= value;
+        return result;
+    }
+    template <typename T>
+    Variable<T> Variable<T>::operator*(const T& value){
+        Variable<T> result(*this);
+        result *= value;
+        return result;
+    }
+    template <typename T>
+    Variable<T> Variable<T>::operator/(const T& value){
+        Variable<T> result(*this);
+        result /= value;
+        return result;
+    }
+
+    template <typename T>
+    const Variable<T>& Variable<T>::operator+=(const Variable<T>& other){
+        setValue(local_value + other.local_value);
+        return *this;
+    }
+    template <typename T>
+    const Variable<T>& Variable<T>::operator-=(const Variable<T>& other){
+        setValue(local_value - other.local_value);
+        return *this;
+    }
+    template <typename T>
+    const Variable<T>& Variable<T>::operator*=(const Variable<T>& other){
+        setValue(local_value * other.local_value);
+        return *this;
+    }
+    template <typename T>
+    const Variable<T>& Variable<T>::operator/=(const Variable<T>& other){
+        setValue(local_value / other.local_value);
+        return *this;
+    }
+    template <typename T>
+    bool Variable<T>::operator==(const Variable<T>& other) const{
+        return local_value == other.local_value;
+    }
+
+    template <typename T>
+    Variable<T> Variable<T>::operator+(const Variable<T>& other){
+        Variable<T> result(*this);
+        result += other.local_value;
+        return result;
+    }
+    template <typename T>
+    Variable<T> Variable<T>::operator-(const Variable<T>& other){
+        Variable<T> result(*this);
+        result -= other.local_value;
+        return result;
+    }
+    template <typename T>
+    Variable<T> Variable<T>::operator*(const Variable<T>& other){
+        Variable<T> result(*this);
+        result *= other.local_value;
+        return result;
+    }
+    template <typename T>
+    Variable<T> Variable<T>::operator/(const Variable<T>& other){
+        Variable<T> result(*this);
+        result /= other.local_value;
+        return result;
+    }
+
+    template <typename T>
+    std::ostream& operator<<(std::ostream& s, const Variable<T>& other){
+        s << other.getValue();
+        return s;
+    }
+
+    template <typename T>
+    Variable<T>::~Variable(){
+        local_value = T(0);
+    }
+
 
     // Array
+    template <typename T>
+    Array<T>::Array() : ArgumentBase(nullptr, 0, FREE){
+    }
+
     template <typename T>
     Array<T>::Array(size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T)){
         this->control = BIND;
         T* temp = new T[array_size];
-        setDataPtr(temp);
+        data_ptr = temp;
     }
     template <typename T>
     Array<T>::Array(size_t array_size, ACCESS memory_access) : ArgumentBase(nullptr, array_size * sizeof(T), memory_access){
         this->control = BIND;
         T* temp = new T[array_size];
-        setDataPtr(temp);
-    }
-
-    template <typename T>
-    Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
-        control = std::move(other.control);
-    }
-
-    template <typename T>
-    Array<T>& Array<T>::operator=(Array<T>&& other){
-        control = other.control;
-
-        buffer = other.buffer;
-        data_ptr = other.data_ptr;
-        data_size = other.data_size;
-        memory_type = other.memory_type;
-
-        other.buffer.clear();
-        other.data_ptr = nullptr;
-        other.data_size = 0;
-        other.memory_type = 0;
-
-        return *this;
+        data_ptr = temp;
     }
 
     template <typename T>
@@ -917,6 +1168,53 @@ namespace ecl{
     template <typename T>
     Array<T>::Array(T* array, size_t array_size, ACCESS memory_access, CONTROL control) : ArgumentBase(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
         this->control = control;
+    }
+
+    template <typename T>
+    Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_size, other.memory_type){
+        control = BIND;
+        size_t count = data_size / sizeof(T);
+        data_ptr = new T[count];
+
+        std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
+    }
+    template <typename T>
+    Array<T>& Array<T>::operator=(const Array<T>& other){
+        this->~Array();
+
+        control = BIND;
+        size_t count = data_size / sizeof(T);
+        data_ptr = new T[count];
+
+        std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
+
+        data_size = other.data_size;
+        memory_type = other.memory_type;        
+
+        return *this;
+    }
+
+    template <typename T>
+    Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
+        control = other.control;
+        other.control = FREE;
+
+        other.~Array();
+    }
+    template <typename T>
+    Array<T>& Array<T>::operator=(Array<T>&& other){
+        this->~Array();
+
+        data_ptr = other.data_ptr;
+        data_size = other.data_size;
+        memory_type = other.memory_type;
+        buffer = std::move(other.buffer);
+        control = other.control;
+
+        other.control = FREE;
+
+        other.~Array();
+        return *this;
     }
 
     template <typename T>
@@ -931,20 +1229,32 @@ namespace ecl{
 
     template <typename T>
     void Array<T>::setArray(const T* array, size_t array_size){
+        this->~Array();
+
         this->setDataPtr(array);
         this->setDataSize(array_size * sizeof(T));
         this->setMemoryType(READ);
+        control = FREE;
     }
     template <typename T>
     void Array<T>::setArray(T* array, size_t array_size, ACCESS memory_access){
+        this->~Array();
+
         this->setDataPtr(array);
         this->setDataSize(array_size * sizeof(T));
         this->setMemoryType(memory_access);
+        control = FREE;
     }
 
     template <typename T>
     T& Array<T>::operator[](size_t i){
         return getArray()[i];
+    }
+
+    template <typename T>
+    std::ostream& operator <<(std::ostream& s, const Array<T>& other){
+        s << other.getConstArray();
+        return s;
     }
 
     template <typename T>
@@ -966,7 +1276,7 @@ namespace ecl{
         checkError("Computer [init]");
     }
 
-    void Computer::sendData(std::vector<ArgumentBase*> args){
+    void Computer::sendData(const std::vector<ArgumentBase*>& args){
         size_t count = args.size();
         for(size_t i(0); i < count; i++){
             ArgumentBase* curr = args.at(i);
@@ -1038,7 +1348,7 @@ namespace ecl{
         return queue;
     }
 
-    void Computer::receiveData(std::vector<ArgumentBase*> args){
+    void Computer::receiveData(const std::vector<ArgumentBase*>& args){
         size_t count = args.size();
         for(size_t i(0); i < count; i++){
             ArgumentBase* curr = args.at(i);
@@ -1050,6 +1360,19 @@ namespace ecl{
         }
         error = clFinish(queue);
         checkError("Computer [receive data]");
+    }
+
+    void Computer::clearData(const std::vector<ArgumentBase*>& args){
+        for(auto* arg : args)
+            arg->clearBuffer(context);
+        
+        error = clFinish(queue);
+        checkError("Computer [clear data]");
+    }
+
+    void Computer::grabData(const std::vector<ArgumentBase*>& args){
+        receiveData(args);
+        clearData(args);
     }
 
     Computer::~Computer(){

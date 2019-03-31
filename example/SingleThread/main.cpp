@@ -6,6 +6,8 @@ int main(){
     ecl::Kernel kern = "test";
     ecl::Variable<int> a(0, ecl::ACCESS::READ_WRITE);
 
+    a += 3;
+
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
@@ -14,7 +16,7 @@ int main(){
     ecl::Thread th(prog, kern, {&a}, &video);
     th.join();
 
-    std::cout << a.getValue() << std::endl;
+    std::cout << a << std::endl;
 
     ecl::System::free();
     return 0;
