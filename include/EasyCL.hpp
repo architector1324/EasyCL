@@ -1138,7 +1138,7 @@ namespace ecl{
 
     template <typename T>
     Variable<T>::~Variable(){
-        local_value = T(0);
+        local_value.~T();
     }
 
 
