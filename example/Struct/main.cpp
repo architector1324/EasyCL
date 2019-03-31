@@ -8,12 +8,12 @@ struct Vertex{
 int main(){
     ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
     ecl::Kernel kern = "test";
-    ecl::Variable<Vertex> v({0, 0, 0}, ecl::ACCESS::READ_WRITE);
+    ecl::Variable<Vertex> v({0, 0, 0});
 
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.sendData({&v});
+    video.send({&v});
 
     ecl::Thread th(prog, kern, {&v}, &video);
     th.join();

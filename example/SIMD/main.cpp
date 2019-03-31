@@ -4,14 +4,14 @@
 int main(){
     ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
     ecl::Kernel kern = "test";
-    ecl::Array<int> a(12, ecl::ACCESS::READ_WRITE);
+    ecl::Array<int> a(12);
 
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.sendData({&a});
+    video.send({&a});
     video.compute(prog, kern, {&a}, {12}, {3});
-    video.grabData({&a});
+    video.grab({&a});
 
     std::cout << a << std::endl;
 

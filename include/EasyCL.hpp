@@ -65,6 +65,7 @@ namespace ecl{
         std::string source;
 
         std::string getBuildError(cl_context, cl_device_id);
+    
     public:
         Program(const char*);
         Program(const std::string&);
@@ -169,6 +170,7 @@ namespace ecl{
         private:
             T local_value;
             CONTROL control = CONTROL::FREE;
+        
         public:
             Variable();
             Variable(const T&);
@@ -216,6 +218,7 @@ namespace ecl{
     template <typename T> class Array : public ArgumentBase{
         private:
             CONTROL control = CONTROL::FREE;
+        
         public:
             Array();
             Array(size_t);
@@ -252,7 +255,7 @@ namespace ecl{
         public:
             Computer(size_t, const Platform*, DEVICE);
 
-            void sendData(const std::vector<ArgumentBase*>&); // отправить данные на устройство
+            void send(const std::vector<ArgumentBase*>&); // отправить данные на устройство
             // выполнить программу на устройстве
             void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&, const std::vector<size_t>&);
             void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&);
@@ -261,9 +264,9 @@ namespace ecl{
             cl_context getContext() const;
             cl_command_queue getQueue() const;
 
-            void receiveData(const std::vector<ArgumentBase*>&); // получить данные с устройства
-            void clearData(const std::vector<ArgumentBase*>&);
-            void grabData(const std::vector<ArgumentBase*>&);
+            void receive(const std::vector<ArgumentBase*>&); // получить данные с устройства
+            void release(const std::vector<ArgumentBase*>&);
+            void grab(const std::vector<ArgumentBase*>&);
 
             ~Computer();
     };
@@ -858,11 +861,15 @@ namespace ecl{
     }
 
     // ArgumentBase
-    ArgumentBase::ArgumentBase() {};
+    ArgumentBase::ArgumentBase() {
+        data_ptr = nullptr;
+        data_size = 0;
+        memory_type = CL_MEM_READ_WRITE;
+    }
     ArgumentBase::ArgumentBase(const void* data_ptr, size_t data_size){
         this->data_ptr = (void*)data_ptr;
         this->data_size = data_size;
-        memory_type = CL_MEM_READ_ONLY;
+        memory_type = CL_MEM_READ_WRITE;
     }
     ArgumentBase::ArgumentBase(void* data_ptr, size_t data_size, cl_mem_flags memory_type){
         this->data_ptr = data_ptr;
@@ -1276,7 +1283,7 @@ namespace ecl{
         checkError("Computer [init]");
     }
 
-    void Computer::sendData(const std::vector<ArgumentBase*>& args){
+    void Computer::send(const std::vector<ArgumentBase*>& args){
         size_t count = args.size();
         for(size_t i(0); i < count; i++){
             ArgumentBase* curr = args.at(i);
@@ -1348,7 +1355,7 @@ namespace ecl{
         return queue;
     }
 
-    void Computer::receiveData(const std::vector<ArgumentBase*>& args){
+    void Computer::receive(const std::vector<ArgumentBase*>& args){
         size_t count = args.size();
         for(size_t i(0); i < count; i++){
             ArgumentBase* curr = args.at(i);
@@ -1362,7 +1369,7 @@ namespace ecl{
         checkError("Computer [receive data]");
     }
 
-    void Computer::clearData(const std::vector<ArgumentBase*>& args){
+    void Computer::release(const std::vector<ArgumentBase*>& args){
         for(auto* arg : args)
             arg->clearBuffer(context);
         
@@ -1370,9 +1377,9 @@ namespace ecl{
         checkError("Computer [clear data]");
     }
 
-    void Computer::grabData(const std::vector<ArgumentBase*>& args){
-        receiveData(args);
-        clearData(args);
+    void Computer::grab(const std::vector<ArgumentBase*>& args){
+        receive(args);
+        release(args);
     }
 
     Computer::~Computer(){
@@ -1415,12 +1422,12 @@ namespace ecl{
         error = clWaitForEvents(1, &sync);
         checkError("Thread [join]");
 
-        video->receiveData(args);
+        video->receive(args);
         readed = true;
     }
     Thread::~Thread(){
         clReleaseEvent(sync);
         checkError("Thread [free]");
-        if(!readed) video->receiveData(args);
+        if(!readed) video->receive(args);
     }
 }
