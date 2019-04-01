@@ -283,1151 +283,1168 @@ namespace ecl{
             void join();
             ~Thread();
     };
+}
 
-    // IMPLEMENTATION
 
-    // Error
-    int Error::error = 0;
+// IMPLEMENTATION
 
-    void Error::checkError(const std::string& where){
-        if (error != 0)
-            throw std::runtime_error(where + ": " + getErrorString());
+// Error
+int ecl::Error::error = 0;
+
+void ecl::Error::checkError(const std::string& where){
+    if (error != 0)
+        throw std::runtime_error(where + ": " + getErrorString());
+}
+
+std::string ecl::Error::getErrorString(){
+    switch (error){
+    case -1:
+        return "device not found";
+        break;
+    case -2:
+        return "device not available";
+        break;
+    case -3:
+        return "compiler not available";
+        break;
+    case -4:
+        return "mem object allocation failure";
+        break;
+    case -5:
+        return "out of resources";
+        break;
+    case -6:
+        return "out of host memory";
+        break;
+    case -7:
+        return "profiling info not available";
+        break;
+    case -8:
+        return "mem copy overlap";
+        break;
+    case -9:
+        return "image format mismatch";
+        break;
+    case -10:
+        return "image format not supported";
+        break;
+    case -11:
+        return "build program failure";
+        break;
+    case -12:
+        return "map failure";
+        break;
+    case -13:
+        return "misaligned sub buffer offset";
+        break;
+    case -14:
+        return "exec status error for events in wait list";
+        break;
+    case -15:
+        return "compile program failure";
+        break;
+    case -16:
+        return "linker not available";
+        break;
+    case -17:
+        return "link program failure";
+        break;
+    case -18:
+        return "device partition failed";
+        break;
+    case -19:
+        return "kernel argument info not available";
+        break;
+    case -30:
+        return "invalid value";
+        break;
+    case -31:
+        return "invalid device type";
+        break;
+    case -32:
+        return "invalid platform";
+        break;
+    case -33:
+        return "invalid device";
+        break;
+    case -34:
+        return "invalid context";
+        break;
+    case -35:
+        return "invalid queue properties";
+        break;
+    case -36:
+        return "invalid command queue";
+        break;
+    case -37:
+        return "invalid host ptr";
+        break;
+    case -38:
+        return "invalid mem object";
+        break;
+    case -39:
+        return "invalid image format descriptor";
+        break;
+    case -40:
+        return "invalid image size";
+        break;
+    case -41:
+        return "invalid sampler";
+        break;
+    case -42:
+        return "invalid binary";
+        break;
+    case -43:
+        return "invalid build options";
+        break;
+    case -44:
+        return "invalid program";
+        break;
+    case -45:
+        return "invalid program executable";
+        break;
+    case -46:
+        return "invalid kernel name";
+        break;
+    case -47:
+        return "invalid kernel definition";
+        break;
+    case -48:
+        return "invalid kernel";
+        break;
+    case -49:
+        return "invalid argument index";
+        break;
+    case -50:
+        return "invalid argument value";
+        break;
+    case -51:
+        return "invalid argument size";
+        break;
+    case -52:
+        return "invalid kernel arguments";
+        break;
+    case -53:
+        return "invalid work dimension";
+        break;
+    case -54:
+        return "invalid work group size";
+        break;
+    case -55:
+        return "invalid work item size";
+        break;
+    case -56:
+        return "invalid global offset";
+        break;
+    case -57:
+        return "invalid event wait list";
+        break;
+    case -58:
+        return "invalid event";
+        break;
+    case -59:
+        return "invalid operation";
+        break;
+    case -60:
+        return "invalid gl object";
+        break;
+    case -61:
+        return "invalid buffer size";
+        break;
+    case -62:
+        return "invalid mip level";
+        break;
+    case -63:
+        return "invalid global work size";
+        break;
+    case -64:
+        return "invalid property";
+        break;
+    case -65:
+        return "invalid image descriptor";
+        break;
+    case -66:
+        return "invalid compiler options";
+        break;
+    case -67:
+        return "invalid linker options";
+        break;
+    case -68:
+        return "invalid device partition count";
+        break;
+    case -1000:
+        return "invalid gl sharegroup reference khr";
+        break;
+    case -1001:
+        return "platform not found khr";
+        break;
+    case -1002:
+        return "invalid d3d10 device khr";
+        break;
+    case -1003:
+        return "invalid d3d10 resource khr";
+        break;
+    case -1004:
+        return "d3d10 resource already acquired khr";
+        break;
+    case -1005:
+        return "d3d10 resource not acquired khr";
+        break;
+    default:
+        return "unknown opencl error";
+        break;
     }
+}
 
-    std::string Error::getErrorString(){
-        switch (error){
-        case -1:
-            return "device not found";
-            break;
-        case -2:
-            return "device not available";
-            break;
-        case -3:
-            return "compiler not available";
-            break;
-        case -4:
-            return "mem object allocation failure";
-            break;
-        case -5:
-            return "out of resources";
-            break;
-        case -6:
-            return "out of host memory";
-            break;
-        case -7:
-            return "profiling info not available";
-            break;
-        case -8:
-            return "mem copy overlap";
-            break;
-        case -9:
-            return "image format mismatch";
-            break;
-        case -10:
-            return "image format not supported";
-            break;
-        case -11:
-            return "build program failure";
-            break;
-        case -12:
-            return "map failure";
-            break;
-        case -13:
-            return "misaligned sub buffer offset";
-            break;
-        case -14:
-            return "exec status error for events in wait list";
-            break;
-        case -15:
-            return "compile program failure";
-            break;
-        case -16:
-            return "linker not available";
-            break;
-        case -17:
-            return "link program failure";
-            break;
-        case -18:
-            return "device partition failed";
-            break;
-        case -19:
-            return "kernel argument info not available";
-            break;
-        case -30:
-            return "invalid value";
-            break;
-        case -31:
-            return "invalid device type";
-            break;
-        case -32:
-            return "invalid platform";
-            break;
-        case -33:
-            return "invalid device";
-            break;
-        case -34:
-            return "invalid context";
-            break;
-        case -35:
-            return "invalid queue properties";
-            break;
-        case -36:
-            return "invalid command queue";
-            break;
-        case -37:
-            return "invalid host ptr";
-            break;
-        case -38:
-            return "invalid mem object";
-            break;
-        case -39:
-            return "invalid image format descriptor";
-            break;
-        case -40:
-            return "invalid image size";
-            break;
-        case -41:
-            return "invalid sampler";
-            break;
-        case -42:
-            return "invalid binary";
-            break;
-        case -43:
-            return "invalid build options";
-            break;
-        case -44:
-            return "invalid program";
-            break;
-        case -45:
-            return "invalid program executable";
-            break;
-        case -46:
-            return "invalid kernel name";
-            break;
-        case -47:
-            return "invalid kernel definition";
-            break;
-        case -48:
-            return "invalid kernel";
-            break;
-        case -49:
-            return "invalid argument index";
-            break;
-        case -50:
-            return "invalid argument value";
-            break;
-        case -51:
-            return "invalid argument size";
-            break;
-        case -52:
-            return "invalid kernel arguments";
-            break;
-        case -53:
-            return "invalid work dimension";
-            break;
-        case -54:
-            return "invalid work group size";
-            break;
-        case -55:
-            return "invalid work item size";
-            break;
-        case -56:
-            return "invalid global offset";
-            break;
-        case -57:
-            return "invalid event wait list";
-            break;
-        case -58:
-            return "invalid event";
-            break;
-        case -59:
-            return "invalid operation";
-            break;
-        case -60:
-            return "invalid gl object";
-            break;
-        case -61:
-            return "invalid buffer size";
-            break;
-        case -62:
-            return "invalid mip level";
-            break;
-        case -63:
-            return "invalid global work size";
-            break;
-        case -64:
-            return "invalid property";
-            break;
-        case -65:
-            return "invalid image descriptor";
-            break;
-        case -66:
-            return "invalid compiler options";
-            break;
-        case -67:
-            return "invalid linker options";
-            break;
-        case -68:
-            return "invalid device partition count";
-            break;
-        case -1000:
-            return "invalid gl sharegroup reference khr";
-            break;
-        case -1001:
-            return "platform not found khr";
-            break;
-        case -1002:
-            return "invalid d3d10 device khr";
-            break;
-        case -1003:
-            return "invalid d3d10 resource khr";
-            break;
-        case -1004:
-            return "d3d10 resource already acquired khr";
-            break;
-        case -1005:
-            return "d3d10 resource not acquired khr";
-            break;
-        default:
-            return "unknown opencl error";
-            break;
-        }
+// Platform
+void ecl::Platform::initDevices(std::vector<cl_device_id>& devs, cl_device_type type){
+    cl_uint count;
+    error = clGetDeviceIDs(platform, type, 0, nullptr, &count);
+
+    if(error != CL_DEVICE_NOT_FOUND){
+        cl_device_id temp[MAX_DEVICES_COUNT];
+
+        error = clGetDeviceIDs(platform, type, count, temp, nullptr);
+        checkError("Platform [init]");
+
+        for(size_t i = 0; i < count; i++) devs.push_back(temp[i]);
     }
+}
 
-    // Platform
-    void Platform::initDevices(std::vector<cl_device_id>& devs, cl_device_type type){
-        cl_uint count;
-        error = clGetDeviceIDs(platform, type, 0, nullptr, &count);
-
-        if(error != CL_DEVICE_NOT_FOUND){
-            cl_device_id temp[MAX_DEVICES_COUNT];
-
-            error = clGetDeviceIDs(platform, type, count, temp, nullptr);
-            checkError("Platform [init]");
-
-            for(size_t i = 0; i < count; i++) devs.push_back(temp[i]);
-        }
+void ecl::Platform::freeDevices(std::vector<cl_device_id>& devs){
+    for(auto& d : devs){
+        error = clReleaseDevice(d);
+        checkError("Platform [free]");
     }
+}
 
-    void Platform::freeDevices(std::vector<cl_device_id>& devs){
-        for(auto& d : devs){
-            error = clReleaseDevice(d);
-            checkError("Platform [free]");
-        }
-    }
+ecl::Platform::Platform(cl_platform_id platform){
+    this->platform = platform;
+    initDevices(cpus, CL_DEVICE_TYPE_CPU);
+    initDevices(gpus, CL_DEVICE_TYPE_GPU);
+    initDevices(accs, CL_DEVICE_TYPE_ACCELERATOR);
+}
 
-    Platform::Platform(cl_platform_id platform){
-        this->platform = platform;
-        initDevices(cpus, CL_DEVICE_TYPE_CPU);
-        initDevices(gpus, CL_DEVICE_TYPE_GPU);
-        initDevices(accs, CL_DEVICE_TYPE_ACCELERATOR);
-    }
+cl_device_id ecl::Platform::getDevice(size_t i, DEVICE type) const{
+    cl_uint count = 0;
+    const cl_device_id* dev;
 
-    cl_device_id Platform::getDevice(size_t i, DEVICE type) const{
-        cl_uint count = 0;
-        const cl_device_id* dev;
+    if(type == CPU){
+        count = cpus.size();
+        dev = cpus.data();
+    }else if(type == GPU){
+        count = gpus.size();
+        dev = gpus.data();
+    }else if(type == ACCEL){
+        count = accs.size();
+        dev = accs.data();
+    } else throw std::runtime_error("invalid device type");
 
-        if(type == CPU){
-            count = cpus.size();
-            dev = cpus.data();
-        }else if(type == GPU){
-            count = gpus.size();
-            dev = gpus.data();
-        }else if(type == ACCEL){
-            count = accs.size();
-            dev = accs.data();
-        } else throw std::runtime_error("invalid device type");
+    if(i >= count) throw std::runtime_error("invalid device");
 
-        if(i >= count) throw std::runtime_error("invalid device");
+    return dev[i];
+}
 
-        return dev[i];
-    }
+std::string ecl::Platform::getPlatformInfo(cl_platform_info info) const{
+    size_t info_size;
 
-    std::string Platform::getPlatformInfo(cl_platform_info info) const{
-        size_t info_size;
+    error = clGetPlatformInfo(platform, info, 0, nullptr, &info_size);
+    checkError("Platform [get info]");
 
-        error = clGetPlatformInfo(platform, info, 0, nullptr, &info_size);
-        checkError("Platform [get info]");
+    char info_src[MAX_INFO_SIZE];
+    error = clGetPlatformInfo(platform, info, info_size, info_src, nullptr);
+    checkError("Platform [get info]");
 
+    return info_src;
+}
+
+std::string ecl::Platform::getDeviceInfo(size_t i, DEVICE type, cl_device_info info) const{
+    size_t info_size;
+    cl_device_id device = getDevice(i, type);
+
+    error = clGetDeviceInfo(device, info, 0, nullptr, &info_size);
+    checkError("Platform [get device info]");
+
+    bool is_char = (info == CL_DEVICE_EXTENSIONS) |
+                    (info == CL_DEVICE_NAME) |
+                    (info == CL_DEVICE_PROFILE) |
+                    (info == CL_DEVICE_VENDOR) |
+                    (info == CL_DEVICE_VERSION) |
+                    (info == CL_DRIVER_VERSION);
+
+    if(is_char){
         char info_src[MAX_INFO_SIZE];
-        error = clGetPlatformInfo(platform, info, info_size, info_src, nullptr);
-        checkError("Platform [get info]");
+        error = clGetDeviceInfo(device, info, info_size, info_src, nullptr);
+        checkError("Platform [get device info]");
 
         return info_src;
     }
 
-    std::string Platform::getDeviceInfo(size_t i, DEVICE type, cl_device_info info) const{
-        size_t info_size;
-        cl_device_id device = getDevice(i, type);
-
-        error = clGetDeviceInfo(device, info, 0, nullptr, &info_size);
+    if(info == CL_DEVICE_MAX_WORK_ITEM_SIZES){
+        size_t info_src[3];
+        error = clGetDeviceInfo(device, info, info_size, info_src, nullptr);
         checkError("Platform [get device info]");
 
-        bool is_char = (info == CL_DEVICE_EXTENSIONS) |
-                       (info == CL_DEVICE_NAME) |
-                       (info == CL_DEVICE_PROFILE) |
-                       (info == CL_DEVICE_VENDOR) |
-                       (info == CL_DEVICE_VERSION) |
-                       (info == CL_DRIVER_VERSION);
-
-        if(is_char){
-            char info_src[MAX_INFO_SIZE];
-            error = clGetDeviceInfo(device, info, info_size, info_src, nullptr);
-            checkError("Platform [get device info]");
-
-            return info_src;
-        }
-
-        if(info == CL_DEVICE_MAX_WORK_ITEM_SIZES){
-            size_t info_src[3];
-            error = clGetDeviceInfo(device, info, info_size, info_src, nullptr);
-            checkError("Platform [get device info]");
-
-            return std::to_string(info_src[0]) + ", " + 
-                   std::to_string(info_src[1]) + ", " + std::to_string(info_src[2]);
-        }
-
-        cl_uint info_src;
-        error = clGetDeviceInfo(device, info, info_size, &info_src, nullptr);
-        checkError("Platform [get device info]");
-
-        return std::to_string(info_src);
+        return std::to_string(info_src[0]) + ", " + 
+                std::to_string(info_src[1]) + ", " + std::to_string(info_src[2]);
     }
 
-    Platform::~Platform(){
-        freeDevices(cpus);
-        freeDevices(gpus);
-        freeDevices(accs);
-    }
+    cl_uint info_src;
+    error = clGetDeviceInfo(device, info, info_size, &info_src, nullptr);
+    checkError("Platform [get device info]");
 
-    // System
-    std::vector<const Platform*> System::platforms;
-    bool System::initialized = false;
+    return std::to_string(info_src);
+}
 
-    void System::init(){
-        cl_uint count;
+ecl::Platform::~Platform(){
+    freeDevices(cpus);
+    freeDevices(gpus);
+    freeDevices(accs);
+}
 
-        error = clGetPlatformIDs(0, nullptr, &count);
+// System
+std::vector<const ecl::Platform*> ecl::System::platforms;
+bool ecl::System::initialized = false;
+
+void ecl::System::init(){
+    cl_uint count;
+
+    error = clGetPlatformIDs(0, nullptr, &count);
+    checkError("System [init]");
+
+    if(count > 0){
+        cl_platform_id temp[MAX_PLATFORMS_COUNT];
+        error = clGetPlatformIDs(count, temp, nullptr);
         checkError("System [init]");
 
-        if(count > 0){
-            cl_platform_id temp[MAX_PLATFORMS_COUNT];
-            error = clGetPlatformIDs(count, temp, nullptr);
-            checkError("System [init]");
+        for(size_t i = 0; i < count; i++) platforms.push_back(new Platform(temp[i]));
+    }
+    initialized = true;
+}
 
-            for(size_t i = 0; i < count; i++) platforms.push_back(new Platform(temp[i]));
-        }
-        initialized = true;
-    }
+const ecl::Platform* ecl::System::getPlatform(size_t i){
+    if(!initialized) init();
+    return platforms.at(i);
+}
 
-    const Platform* System::getPlatform(size_t i){
-        if(!initialized) init();
-        return platforms.at(i);
-    }
+void ecl::System::free(){
+    for(auto* p : platforms) delete p;
+}
 
-    void System::free(){
-        for(auto* p : platforms) delete p;
-    }
+// Program
+std::string ecl::Program::getBuildError(cl_context context, cl_device_id device){
+    size_t info_size;
+    clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &info_size);
 
-    // Program
-    std::string Program::getBuildError(cl_context context, cl_device_id device){
-        size_t info_size;
-        clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &info_size);
+    char* info = new char[info_size];
+    clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, info_size, info, nullptr);
 
-        char* info = new char[info_size];
-        clGetProgramBuildInfo(program.at(context), device, CL_PROGRAM_BUILD_LOG, info_size, info, nullptr);
+    return info;
+}
 
-        return info;
-    }
+ecl::Program::Program(const char* src){
+    source = src;
+}
+ecl::Program::Program(const std::string& src){
+    source = src;
+}
 
-    Program::Program(const char* src){
-        source = src;
-    }
-    Program::Program(const std::string& src){
-        source = src;
-    }
+ecl::Program::Program(const Program& other){
+    source = other.source;
+}
+ecl::Program& ecl::Program::operator=(const Program& other){
+    this->~Program();
+    source = other.source;
 
-    Program::Program(const Program& other){
-        source = other.source;
-    }
-    Program& Program::operator=(const Program& other){
-        this->~Program();
-        source = other.source;
+    return *this;
+}
 
-        return *this;
-    }
+ecl::Program::Program(Program&& other){
+    source = other.source;
+    program = std::move(other.program);
 
-    Program::Program(Program&& other){
-        source = other.source;
-        program = std::move(other.program);
+    other.~Program();
+}
+ecl::Program& ecl::Program::operator=(Program&& other){
+    this->~Program();
+    source = other.source;
+    program = std::move(other.program);
 
-        other.~Program();
-    }
-    Program& Program::operator=(Program&& other){
-        this->~Program();
-        source = other.source;
-        program = std::move(other.program);
+    other.~Program();
 
-        other.~Program();
+    return *this;
+}
 
-        return *this;
-    }
+std::string ecl::Program::loadProgram(const std::string& filename){
+    std::ifstream f(filename, std::ios::binary);
+    if(!f.is_open()) throw std::runtime_error("wrong program filename");
 
-    std::string Program::loadProgram(const std::string& filename){
-        std::ifstream f(filename, std::ios::binary);
-        if(!f.is_open()) throw std::runtime_error("wrong program filename");
+    std::string result;
+    std::getline (f, result, (char)f.eof());
+    f.close();
 
-        std::string result;
-        std::getline (f, result, (char)f.eof());
-        f.close();
+    return result;
+}
 
-        return result;
-    }
+cl_program ecl::Program::getProgram(cl_context context) const{
+    return program.at(context);
+}
+const std::string& ecl::Program::getSource() const{
+    return source;
+}
 
-    cl_program Program::getProgram(cl_context context) const{
-        return program.at(context);
-    }
-    const std::string& Program::getSource() const{
-        return source;
-    }
-
-    void Program::setSource(const std::string& src){
-        if(program.size() == 0){
-            source = src;
-        }
-        else throw std::runtime_error("unable to change program until it's using");
-    }
-
-    Program& Program::operator=(const std::string& src){
-        setSource(src);
-        return *this;
-    }
-    Program& Program::operator=(const char* src){
-        setSource(src);
-        return *this;
-    }
-
-    Program& Program::operator+=(const std::string& src){
-        setSource(source + src);
-        return *this;
-    }
-    Program& Program::operator+=(const char* src){
-        setSource(source + src);
-        return *this;
-    }
-    Program& Program::operator+=(const Program& other){
-        setSource(source + other.source);
-        return *this;
-    }
-
-    Program Program::operator+(const std::string& src){
-        Program result(*this);
-        result += src;
-        return result;
-    }
-    Program Program::operator+(const char* src){
-        Program result(*this);
-        result += src;
-        return result;
-    }
-    Program Program::operator+(const Program& other){
-        Program result(*this);
-        result += other;
-        return result;
-    }
+namespace ecl{
     std::ostream& operator<<(std::ostream& s, const Program& other){
         s << other.getSource();
         return s;
     }
+}
 
-    bool Program::checkProgram(cl_context context, cl_device_id device){
-        if(program.find(context) == program.end()){
-            const char* src = source.c_str();
-            size_t len  = source.size();
+void ecl::Program::setSource(const std::string& src){
+    if(program.size() == 0){
+        source = src;
+    }
+    else throw std::runtime_error("unable to change program until it's using");
+}
 
-            program.emplace(context, clCreateProgramWithSource(context, 1, (const char**)&src, (const size_t*)&len, &error));
-            checkError("Program [check]");
 
-            error = clBuildProgram(program.at(context), 0, nullptr, nullptr, nullptr, nullptr);
-            if(error != 0) throw std::runtime_error(getBuildError(context, device));
+ecl::Program& ecl::Program::operator=(const std::string& src){
+    setSource(src);
+    return *this;
+}
+ecl::Program& ecl::Program::operator=(const char* src){
+    setSource(src);
+    return *this;
+}
 
-            return false;
-        }
-        return true;
-    }
+ecl::Program& ecl::Program::operator+=(const std::string& src){
+    setSource(source + src);
+    return *this;
+}
+ecl::Program& ecl::Program::operator+=(const char* src){
+    setSource(source + src);
+    return *this;
+}
+ecl::Program& ecl::Program::operator+=(const Program& other){
+    setSource(source + other.source);
+    return *this;
+}
 
-    Program::~Program(){
-        for(const auto& p : program) clReleaseProgram(p.second);
-        program.clear();
-        source.clear();
-    }
+ecl::Program ecl::Program::operator+(const std::string& src){
+    Program result(*this);
+    result += src;
+    return result;
+}
+ecl::Program ecl::Program::operator+(const char* src){
+    Program result(*this);
+    result += src;
+    return result;
+}
+ecl::Program ecl::Program::operator+(const Program& other){
+    Program result(*this);
+    result += other;
+    return result;
+}
 
-    // Kernel
-    Kernel::Kernel(const char* name){
-        this->name = name;
-    }
-    Kernel::Kernel(const std::string& name){
-        this->name = name;
-    }
 
-    Kernel::Kernel(const Kernel& other){
-        name = other.name;
-    }
-    Kernel& Kernel::operator=(const Kernel& other){
-        this->~Kernel();
-        name = other.name;
+bool ecl::Program::checkProgram(cl_context context, cl_device_id device){
+    if(program.find(context) == program.end()){
+        const char* src = source.c_str();
+        size_t len  = source.size();
 
-        return *this;
-    }
+        program.emplace(context, clCreateProgramWithSource(context, 1, (const char**)&src, (const size_t*)&len, &error));
+        checkError("Program [check]");
 
-    Kernel::Kernel(Kernel&& other){
-        name = other.name;
-        kernel = std::move(other.kernel);
+        error = clBuildProgram(program.at(context), 0, nullptr, nullptr, nullptr, nullptr);
+        if(error != 0) throw std::runtime_error(getBuildError(context, device));
 
-        other.~Kernel();
+        return false;
     }
-    Kernel& Kernel::operator=(Kernel&& other){
-        this->~Kernel();
-        name = other.name;
-        kernel = std::move(other.kernel);
+    return true;
+}
 
-        other.~Kernel();
+ecl::Program::~Program(){
+    for(const auto& p : program) clReleaseProgram(p.second);
+    program.clear();
+    source.clear();
+}
 
-        return *this;
-    }
+// Kernel
+ecl::Kernel::Kernel(const char* name){
+    this->name = name;
+}
+ecl::Kernel::Kernel(const std::string& name){
+    this->name = name;
+}
 
-    void Kernel::setName(const std::string& name){
-        if(kernel.size() == 0) this->name = name;
-        else throw std::runtime_error("unable to change kernel name until it's using");
-    }
-    Kernel& Kernel::operator=(const std::string& src){
-        setName(src);
-        return *this;
-    }
-    Kernel& Kernel::operator=(const char* src){
-        setName(src);
-        return *this;
-    }
+ecl::Kernel::Kernel(const Kernel& other){
+    name = other.name;
+}
+ecl::Kernel& ecl::Kernel::operator=(const Kernel& other){
+    this->~Kernel();
+    name = other.name;
 
-    Kernel& Kernel::operator+=(const std::string& src){
-        setName(name + src);
-        return *this;
-    }
-    Kernel& Kernel::operator+=(const char* src){
-        setName(name + src);
-        return *this;
-    }
-    Kernel& Kernel::operator+=(const Kernel& other){
-        setName(name + other.name);
-        return *this;
-    }
+    return *this;
+}
 
-    Kernel Kernel::operator+(const std::string& src){
-        Kernel result(*this);
-        result += src;
-        return result;
-    }
-    Kernel Kernel::operator+(const char* src){
-        Kernel result(*this);
-        result += src;
-        return result;
-    }
-    Kernel Kernel::operator+(const Kernel& other){
-        Kernel result(*this);
-        result += other;
-        return result;
-    }
+ecl::Kernel::Kernel(Kernel&& other){
+    name = other.name;
+    kernel = std::move(other.kernel);
+
+    other.~Kernel();
+}
+ecl::Kernel& ecl::Kernel::operator=(Kernel&& other){
+    this->~Kernel();
+    name = other.name;
+    kernel = std::move(other.kernel);
+
+    other.~Kernel();
+
+    return *this;
+}
+
+namespace ecl{
     std::ostream& operator<<(std::ostream& s, const Kernel& other){
-        s << other.name;
+        s << other.getName();
         return s;
     }
+}
+
+void ecl::Kernel::setName(const std::string& name){
+    if(kernel.size() == 0) this->name = name;
+    else throw std::runtime_error("unable to change kernel name until it's using");
+}
+const std::string& ecl::Kernel::getName() const{
+    return name;
+}
+
+ecl::Kernel& ecl::Kernel::operator=(const std::string& src){
+    setName(src);
+    return *this;
+}
+ecl::Kernel& ecl::Kernel::operator=(const char* src){
+    setName(src);
+    return *this;
+}
+
+ecl::Kernel& ecl::Kernel::operator+=(const std::string& src){
+    setName(name + src);
+    return *this;
+}
+ecl::Kernel& ecl::Kernel::operator+=(const char* src){
+    setName(name + src);
+    return *this;
+}
+ecl::Kernel& ecl::Kernel::operator+=(const Kernel& other){
+    setName(name + other.name);
+    return *this;
+}
+
+ecl::Kernel ecl::Kernel::operator+(const std::string& src){
+    Kernel result(*this);
+    result += src;
+    return result;
+}
+ecl::Kernel ecl::Kernel::operator+(const char* src){
+    Kernel result(*this);
+    result += src;
+    return result;
+}
+ecl::Kernel ecl::Kernel::operator+(const Kernel& other){
+    Kernel result(*this);
+    result += other;
+    return result;
+}
 
 
-    cl_kernel Kernel::getKernel(cl_program program) const{
-        return kernel.at(program);
+cl_kernel ecl::Kernel::getKernel(cl_program program) const{
+    return kernel.at(program);
+}
+bool ecl::Kernel::checkKernel(cl_program program){
+    if(kernel.find(program) == kernel.end()){
+        kernel.emplace(program, clCreateKernel(program, name.c_str(), &error));
+        checkError("Kernel [check]");
+        return false;
     }
-    bool Kernel::checkKernel(cl_program program){
-        if(kernel.find(program) == kernel.end()){
-            kernel.emplace(program, clCreateKernel(program, name.c_str(), &error));
-            checkError("Kernel [check]");
-            return false;
-        }
-        return true;
-    }
+    return true;
+}
 
-    Kernel::~Kernel(){
-        for(const auto& p : kernel) clReleaseKernel(p.second);
-        name.clear();
-    }
+ecl::Kernel::~Kernel(){
+    for(const auto& p : kernel) clReleaseKernel(p.second);
+    name.clear();
+}
 
-    // ArgumentBase
-    ArgumentBase::ArgumentBase() {
-        data_ptr = nullptr;
-        data_size = 0;
-        memory_type = CL_MEM_READ_WRITE;
+// ArgumentBase
+ecl::ArgumentBase::ArgumentBase() {
+    data_ptr = nullptr;
+    data_size = 0;
+    memory_type = CL_MEM_READ_WRITE;
+}
+ecl::ArgumentBase::ArgumentBase(const void* data_ptr, size_t data_size){
+    this->data_ptr = (void*)data_ptr;
+    this->data_size = data_size;
+    memory_type = CL_MEM_READ_WRITE;
+}
+ecl::ArgumentBase::ArgumentBase(void* data_ptr, size_t data_size, cl_mem_flags memory_type){
+    this->data_ptr = data_ptr;
+    this->data_size = data_size;
+    this->memory_type = memory_type;
+}
+
+ecl::ArgumentBase::ArgumentBase(ArgumentBase&& other){
+    data_size = other.data_size;
+    data_ptr = other.data_ptr;
+    memory_type = other.memory_type;
+    buffer = std::move(other.buffer);
+
+    other.~ArgumentBase();
+}
+ecl::ArgumentBase& ecl::ArgumentBase::operator=(ArgumentBase&& other){
+    this->~ArgumentBase();
+
+    data_size = other.data_size;
+    data_ptr = other.data_ptr;
+    memory_type = other.memory_type;
+    buffer = std::move(other.buffer);
+
+    other.~ArgumentBase();
+
+    return *this;
+}
+
+void* ecl::ArgumentBase::getDataPtr(){
+    return data_ptr;
+}
+size_t ecl::ArgumentBase::getDataSize() const{
+    return data_size;
+}
+cl_mem_flags ecl::ArgumentBase::getMemoryType() const{
+    return memory_type;
+}
+cl_mem ecl::ArgumentBase::getBuffer(cl_context context) const{
+    return buffer.at(context);
+}
+
+bool ecl::ArgumentBase::checkBuffer(cl_context context){
+    if(buffer.find(context) == buffer.end()){
+        buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
+        checkError("ArgumentBase [check]");
+
+        return false;
     }
-    ArgumentBase::ArgumentBase(const void* data_ptr, size_t data_size){
-        this->data_ptr = (void*)data_ptr;
+    return true;
+}
+
+void ecl::ArgumentBase::setDataPtr(void* data_ptr){
+    this->data_ptr = data_ptr;
+}
+void ecl::ArgumentBase::setDataSize(size_t data_size){
+    if(buffer.size() == 0){
         this->data_size = data_size;
-        memory_type = CL_MEM_READ_WRITE;
     }
-    ArgumentBase::ArgumentBase(void* data_ptr, size_t data_size, cl_mem_flags memory_type){
-        this->data_ptr = data_ptr;
-        this->data_size = data_size;
+    else throw std::runtime_error("unable to change array size until it's using");
+}
+void ecl::ArgumentBase::setMemoryType(cl_mem_flags memory_type){
+    if(buffer.size() == 0){
         this->memory_type = memory_type;
     }
+    else throw std::runtime_error("unable to change array memory type until it's using");
+}
 
-    ArgumentBase::ArgumentBase(ArgumentBase&& other){
-        data_size = other.data_size;
-        data_ptr = other.data_ptr;
-        memory_type = other.memory_type;
-        buffer = std::move(other.buffer);
+void ecl::ArgumentBase::clearBuffer(cl_context context){
+    auto it = buffer.find(context);
+    if(it != buffer.end()){
+        error = clReleaseMemObject(buffer.at(context));
+        buffer.erase(it);
 
-        other.~ArgumentBase();
+        checkError("ArgumentBase [clear]");
     }
-    ArgumentBase& ArgumentBase::operator=(ArgumentBase&& other){
-        this->~ArgumentBase();
+}
 
-        data_size = other.data_size;
-        data_ptr = other.data_ptr;
-        memory_type = other.memory_type;
-        buffer = std::move(other.buffer);
+ecl::ArgumentBase::~ArgumentBase(){
+    for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
+    data_ptr = nullptr;
+    data_size = 0;
+    memory_type = 0;
+    buffer.clear();
+}
 
-        other.~ArgumentBase();
+// Variable
+template<typename T>
+ecl::Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T)){
+}
+template <typename T>
+ecl::Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T)){
+    local_value = value;
+}
 
-        return *this;
-    }
+template <typename T>
+ecl::Variable<T>::Variable(ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
+}
 
-    void* ArgumentBase::getDataPtr(){
-        return data_ptr;
-    }
-    size_t ArgumentBase::getDataSize() const{
-        return data_size;
-    }
-    cl_mem_flags ArgumentBase::getMemoryType() const{
-        return memory_type;
-    }
-    cl_mem ArgumentBase::getBuffer(cl_context context) const{
-        return buffer.at(context);
-    }
+template <typename T>
+ecl::Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
+    local_value = value;
+}
 
-    bool ArgumentBase::checkBuffer(cl_context context){
-        if(buffer.find(context) == buffer.end()){
-            buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
-            checkError("ArgumentBase [check]");
+template <typename T>
+ecl::Variable<T>::Variable(const Variable<T>& other) : ArgumentBase(&local_value, other.data_size, other.memory_type){
+    local_value = other.local_value;
+}
+template <typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
+    this->~Variable();
 
-            return false;
-        }
-        return true;
-    }
+    local_value = other.local_value;
+    data_ptr = &local_value;
+    data_size = other.data_size;
+    memory_type = other.memory_type;
 
-    void ArgumentBase::setDataPtr(void* data_ptr){
-        this->data_ptr = data_ptr;
-    }
-    void ArgumentBase::setDataSize(size_t data_size){
-        if(buffer.size() == 0){
-            this->data_size = data_size;
-        }
-        else throw std::runtime_error("unable to change array size until it's using");
-    }
-    void ArgumentBase::setMemoryType(cl_mem_flags memory_type){
-        if(buffer.size() == 0){
-            this->memory_type = memory_type;
-        }
-        else throw std::runtime_error("unable to change array memory type until it's using");
-    }
+    return *this;
+}
 
-    void ArgumentBase::clearBuffer(cl_context context){
-        auto it = buffer.find(context);
-        if(it != buffer.end()){
-            error = clReleaseMemObject(buffer.at(context));
-            buffer.erase(it);
+template <typename T>
+ecl::Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other)){
+    local_value = other.local_value;
+    data_ptr = &local_value;
 
-            checkError("ArgumentBase [clear]");
-        }
-    }
+    other.~Variable();
+}
+template <typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
+    this->~Variable();
 
-    ArgumentBase::~ArgumentBase(){
-        for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
-        data_ptr = nullptr;
-        data_size = 0;
-        memory_type = 0;
-        buffer.clear();
-    }
+    data_size = other.data_size;
+    memory_type = other.memory_type;
+    buffer = std::move(other.buffer);
 
-    // Variable
-    template<typename T>
-    Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T)){
-    }
-    template <typename T>
-    Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T)){
-        local_value = value;
-    }
+    local_value = other.local_value;
+    data_ptr = &local_value;
 
-    template <typename T>
-    Variable<T>::Variable(ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
-    }
+    other.~Variable();
+    return *this;
+}
 
-    template <typename T>
-    Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
-        local_value = value;
-    }
+template <typename T>
+const T& ecl::Variable<T>::getValue() const{
+    return local_value;
+}
 
-    template <typename T>
-    Variable<T>::Variable(const Variable<T>& other) : ArgumentBase(&local_value, other.data_size, other.memory_type){
-        local_value = other.local_value;
-    }
-    template <typename T>
-    Variable<T>& Variable<T>::operator=(const Variable<T>& other){
-        this->~Variable();
+template <typename T>
+void ecl::Variable<T>::setValue(const T& value){
+    local_value = value;
+}
 
-        local_value = other.local_value;
-        data_ptr = &local_value;
-        data_size = other.data_size;
-        memory_type = other.memory_type;
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator++(int){
+    ++local_value;
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator--(int){
+    --local_value;
+    return *this;
+}
 
-        return *this;
-    }
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator=(const T& value){
+    setValue(value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator+=(const T& value){
+    setValue(local_value + value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator-=(const T& value){
+    setValue(local_value - value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator*=(const T& value){
+    setValue(local_value * value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator/=(const T& value){
+    setValue(local_value / value);
+    return *this;
+}
+template <typename T>
+bool ecl::Variable<T>::operator==(const T& value) const{
+    return local_value == value;
+}
 
-    template <typename T>
-    Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other)){
-        local_value = other.local_value;
-        data_ptr = &local_value;
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator+(const T& value){
+    Variable<T> result(*this);
+    result += value;
+    return result;
+}
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator-(const T& value){
+    Variable<T> result(*this);
+    result -= value;
+    return result;
+}
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator*(const T& value){
+    Variable<T> result(*this);
+    result *= value;
+    return result;
+}
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator/(const T& value){
+    Variable<T> result(*this);
+    result /= value;
+    return result;
+}
 
-        other.~Variable();
-    }
-    template <typename T>
-    Variable<T>& Variable<T>::operator=(Variable<T>&& other){
-        this->~Variable();
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator+=(const Variable<T>& other){
+    setValue(local_value + other.local_value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator-=(const Variable<T>& other){
+    setValue(local_value - other.local_value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator*=(const Variable<T>& other){
+    setValue(local_value * other.local_value);
+    return *this;
+}
+template <typename T>
+const ecl::Variable<T>& ecl::Variable<T>::operator/=(const Variable<T>& other){
+    setValue(local_value / other.local_value);
+    return *this;
+}
+template <typename T>
+bool ecl::Variable<T>::operator==(const Variable<T>& other) const{
+    return local_value == other.local_value;
+}
 
-        data_size = other.data_size;
-        memory_type = other.memory_type;
-        buffer = std::move(other.buffer);
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator+(const Variable<T>& other){
+    Variable<T> result(*this);
+    result += other.local_value;
+    return result;
+}
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator-(const Variable<T>& other){
+    Variable<T> result(*this);
+    result -= other.local_value;
+    return result;
+}
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator*(const Variable<T>& other){
+    Variable<T> result(*this);
+    result *= other.local_value;
+    return result;
+}
+template <typename T>
+ecl::Variable<T> ecl::Variable<T>::operator/(const Variable<T>& other){
+    Variable<T> result(*this);
+    result /= other.local_value;
+    return result;
+}
 
-        local_value = other.local_value;
-        data_ptr = &local_value;
-
-        other.~Variable();
-        return *this;
-    }
-
-    template <typename T>
-    const T& Variable<T>::getValue() const{
-        return local_value;
-    }
-
-    template <typename T>
-    void Variable<T>::setValue(const T& value){
-        local_value = value;
-    }
-
-    template <typename T>
-    const Variable<T>& Variable<T>::operator++(int){
-        ++local_value;
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator--(int){
-        --local_value;
-        return *this;
-    }
-
-    template <typename T>
-    const Variable<T>& Variable<T>::operator=(const T& value){
-        setValue(value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator+=(const T& value){
-        setValue(local_value + value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator-=(const T& value){
-        setValue(local_value - value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator*=(const T& value){
-        setValue(local_value * value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator/=(const T& value){
-        setValue(local_value / value);
-        return *this;
-    }
-    template <typename T>
-    bool Variable<T>::operator==(const T& value) const{
-        return local_value == value;
-    }
-
-    template <typename T>
-    Variable<T> Variable<T>::operator+(const T& value){
-        Variable<T> result(*this);
-        result += value;
-        return result;
-    }
-    template <typename T>
-    Variable<T> Variable<T>::operator-(const T& value){
-        Variable<T> result(*this);
-        result -= value;
-        return result;
-    }
-    template <typename T>
-    Variable<T> Variable<T>::operator*(const T& value){
-        Variable<T> result(*this);
-        result *= value;
-        return result;
-    }
-    template <typename T>
-    Variable<T> Variable<T>::operator/(const T& value){
-        Variable<T> result(*this);
-        result /= value;
-        return result;
-    }
-
-    template <typename T>
-    const Variable<T>& Variable<T>::operator+=(const Variable<T>& other){
-        setValue(local_value + other.local_value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator-=(const Variable<T>& other){
-        setValue(local_value - other.local_value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator*=(const Variable<T>& other){
-        setValue(local_value * other.local_value);
-        return *this;
-    }
-    template <typename T>
-    const Variable<T>& Variable<T>::operator/=(const Variable<T>& other){
-        setValue(local_value / other.local_value);
-        return *this;
-    }
-    template <typename T>
-    bool Variable<T>::operator==(const Variable<T>& other) const{
-        return local_value == other.local_value;
-    }
-
-    template <typename T>
-    Variable<T> Variable<T>::operator+(const Variable<T>& other){
-        Variable<T> result(*this);
-        result += other.local_value;
-        return result;
-    }
-    template <typename T>
-    Variable<T> Variable<T>::operator-(const Variable<T>& other){
-        Variable<T> result(*this);
-        result -= other.local_value;
-        return result;
-    }
-    template <typename T>
-    Variable<T> Variable<T>::operator*(const Variable<T>& other){
-        Variable<T> result(*this);
-        result *= other.local_value;
-        return result;
-    }
-    template <typename T>
-    Variable<T> Variable<T>::operator/(const Variable<T>& other){
-        Variable<T> result(*this);
-        result /= other.local_value;
-        return result;
-    }
-
+namespace ecl{
     template <typename T>
     std::ostream& operator<<(std::ostream& s, const Variable<T>& other){
         s << other.getValue();
         return s;
     }
+}
 
-    template <typename T>
-    Variable<T>::~Variable(){
-        local_value.~T();
-    }
+template <typename T>
+ecl::Variable<T>::~Variable(){
+    local_value.~T();
+}
 
 
-    // Array
-    template <typename T>
-    Array<T>::Array() : ArgumentBase(nullptr, 0, FREE){
-    }
+// Array
+template <typename T>
+ecl::Array<T>::Array() : ArgumentBase(nullptr, 0, FREE){
+}
 
-    template <typename T>
-    Array<T>::Array(size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T)){
-        this->control = BIND;
-        T* temp = new T[array_size];
-        data_ptr = temp;
-    }
-    template <typename T>
-    Array<T>::Array(size_t array_size, ACCESS memory_access) : ArgumentBase(nullptr, array_size * sizeof(T), memory_access){
-        this->control = BIND;
-        T* temp = new T[array_size];
-        data_ptr = temp;
-    }
+template <typename T>
+ecl::Array<T>::Array(size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T)){
+    this->control = BIND;
+    T* temp = new T[array_size];
+    data_ptr = temp;
+}
+template <typename T>
+ecl::Array<T>::Array(size_t array_size, ACCESS memory_access) : ArgumentBase(nullptr, array_size * sizeof(T), memory_access){
+    this->control = BIND;
+    T* temp = new T[array_size];
+    data_ptr = temp;
+}
 
-    template <typename T>
-    Array<T>::Array(const T* array, size_t array_size, CONTROL control) : ArgumentBase(static_cast<const void*>(array), array_size * sizeof(T)){
-        this->control = control;
-    }
-   
-    template <typename T>
-    Array<T>::Array(T* array, size_t array_size, ACCESS memory_access, CONTROL control) : ArgumentBase(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
-        this->control = control;
-    }
+template <typename T>
+ecl::Array<T>::Array(const T* array, size_t array_size, CONTROL control) : ArgumentBase(static_cast<const void*>(array), array_size * sizeof(T)){
+    this->control = control;
+}
 
-    template <typename T>
-    Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_size, other.memory_type){
-        control = BIND;
-        size_t count = data_size / sizeof(T);
-        data_ptr = new T[count];
+template <typename T>
+ecl::Array<T>::Array(T* array, size_t array_size, ACCESS memory_access, CONTROL control) : ArgumentBase(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
+    this->control = control;
+}
 
-        std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
-    }
-    template <typename T>
-    Array<T>& Array<T>::operator=(const Array<T>& other){
-        this->~Array();
+template <typename T>
+ecl::Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_size, other.memory_type){
+    control = BIND;
+    size_t count = data_size / sizeof(T);
+    data_ptr = new T[count];
 
-        control = BIND;
-        size_t count = data_size / sizeof(T);
-        data_ptr = new T[count];
+    std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
+}
+template <typename T>
+ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
+    this->~Array();
 
-        std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
+    control = BIND;
+    size_t count = data_size / sizeof(T);
+    data_ptr = new T[count];
 
-        data_size = other.data_size;
-        memory_type = other.memory_type;        
+    std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
 
-        return *this;
-    }
+    data_size = other.data_size;
+    memory_type = other.memory_type;        
 
-    template <typename T>
-    Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
-        control = other.control;
-        other.control = FREE;
+    return *this;
+}
 
-        other.~Array();
-    }
-    template <typename T>
-    Array<T>& Array<T>::operator=(Array<T>&& other){
-        this->~Array();
+template <typename T>
+ecl::Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
+    control = other.control;
+    other.control = FREE;
 
-        data_ptr = other.data_ptr;
-        data_size = other.data_size;
-        memory_type = other.memory_type;
-        buffer = std::move(other.buffer);
-        control = other.control;
+    other.~Array();
+}
+template <typename T>
+ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
+    this->~Array();
 
-        other.control = FREE;
+    data_ptr = other.data_ptr;
+    data_size = other.data_size;
+    memory_type = other.memory_type;
+    buffer = std::move(other.buffer);
+    control = other.control;
 
-        other.~Array();
-        return *this;
-    }
+    other.control = FREE;
 
-    template <typename T>
-    const T* Array<T>::getConstArray() const{
-        return static_cast<const T*>(data_ptr);
-    }
+    other.~Array();
+    return *this;
+}
 
-    template <typename T>
-    T* Array<T>::getArray(){
-        return static_cast<T*>(data_ptr);
-    }
+template <typename T>
+const T* ecl::Array<T>::getConstArray() const{
+    return static_cast<const T*>(data_ptr);
+}
 
-    template <typename T>
-    void Array<T>::setArray(const T* array, size_t array_size){
-        this->~Array();
+template <typename T>
+T* ecl::Array<T>::getArray(){
+    return static_cast<T*>(data_ptr);
+}
 
-        this->setDataPtr(array);
-        this->setDataSize(array_size * sizeof(T));
-        this->setMemoryType(READ);
-        control = FREE;
-    }
-    template <typename T>
-    void Array<T>::setArray(T* array, size_t array_size, ACCESS memory_access){
-        this->~Array();
-
-        this->setDataPtr(array);
-        this->setDataSize(array_size * sizeof(T));
-        this->setMemoryType(memory_access);
-        control = FREE;
-    }
-
-    template <typename T>
-    T& Array<T>::operator[](size_t i){
-        return getArray()[i];
-    }
-
+namespace ecl{
     template <typename T>
     std::ostream& operator <<(std::ostream& s, const Array<T>& other){
         s << other.getConstArray();
         return s;
     }
+}
 
-    template <typename T>
-    Array<T>::~Array(){
-        if(control == BIND){
-            delete[] static_cast<T*>(data_ptr);
-            data_ptr = nullptr;
-        } 
-    }
+template <typename T>
+void ecl::Array<T>::setArray(const T* array, size_t array_size){
+    this->~Array();
 
-    // GPU
-    Computer::Computer(size_t i, const Platform* platform, DEVICE dev){
-        device = platform->getDevice(i, dev);
+    this->setDataPtr(array);
+    this->setDataSize(array_size * sizeof(T));
+    this->setMemoryType(READ);
+    control = FREE;
+}
+template <typename T>
+void ecl::Array<T>::setArray(T* array, size_t array_size, ACCESS memory_access){
+    this->~Array();
 
-        context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &error);
-        checkError("Computer [init]");
+    this->setDataPtr(array);
+    this->setDataSize(array_size * sizeof(T));
+    this->setMemoryType(memory_access);
+    control = FREE;
+}
 
-        queue = clCreateCommandQueue(context, device, 0, &error);
-        checkError("Computer [init]");
-    }
+template <typename T>
+T& ecl::Array<T>::operator[](size_t i){
+    return getArray()[i];
+}
 
-    void Computer::send(const std::vector<ArgumentBase*>& args){
-        size_t count = args.size();
-        for(size_t i(0); i < count; i++){
-            ArgumentBase* curr = args.at(i);
-            curr->checkBuffer(context);
+template <typename T>
+ecl::Array<T>::~Array(){
+    if(control == BIND){
+        delete[] static_cast<T*>(data_ptr);
+        data_ptr = nullptr;
+    } 
+}
 
-            error = clEnqueueWriteBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
-            checkError("Computer [send data]");
-        }
-        error = clFinish(queue);
+// GPU
+ecl::Computer::Computer(size_t i, const Platform* platform, DEVICE dev){
+    device = platform->getDevice(i, dev);
+
+    context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &error);
+    checkError("Computer [init]");
+
+    queue = clCreateCommandQueue(context, device, 0, &error);
+    checkError("Computer [init]");
+}
+
+void ecl::Computer::send(const std::vector<ArgumentBase*>& args){
+    size_t count = args.size();
+    for(size_t i(0); i < count; i++){
+        ArgumentBase* curr = args.at(i);
+        curr->checkBuffer(context);
+
+        error = clEnqueueWriteBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
         checkError("Computer [send data]");
     }
+    error = clFinish(queue);
+    checkError("Computer [send data]");
+}
 
-    void Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size){
-        prog.checkProgram(context, device);
-        cl_program prog_program = prog.getProgram(context);
-        
-        kern.checkKernel(prog_program);
-        cl_kernel kern_kernel = kern.getKernel(prog_program);
+void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size){
+    prog.checkProgram(context, device);
+    cl_program prog_program = prog.getProgram(context);
+    
+    kern.checkKernel(prog_program);
+    cl_kernel kern_kernel = kern.getKernel(prog_program);
 
-        size_t count = args.size();
-        for (size_t i(0); i < count; i++) {
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+    size_t count = args.size();
+    for (size_t i(0); i < count; i++) {
+        ArgumentBase* curr = args.at(i);
+        bool sended = curr->checkBuffer(context);
+        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
 
-            cl_mem buf = curr->getBuffer(context);
-            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
-            checkError("Computer [compute]");
-        }
-
-        error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
-        checkError("Computer [compute]");
-        
-        error = clFinish(queue);
-        checkError("Computer [compute]");
-    }
-    void Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size){
-        prog.checkProgram(context, device);
-        cl_program prog_program = prog.getProgram(context);
-        
-        kern.checkKernel(prog_program);
-        cl_kernel kern_kernel = kern.getKernel(prog_program);
-
-        size_t count = args.size();
-        for (size_t i(0); i < count; i++) {
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
-
-            cl_mem buf = curr->getBuffer(context);
-            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
-            checkError("Computer [compute]");
-        }
-
-        error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
-        checkError("Computer [compute]");
-        
-        error = clFinish(queue);
+        cl_mem buf = curr->getBuffer(context);
+        error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
         checkError("Computer [compute]");
     }
 
-    cl_device_id Computer::getDevice() const{
-        return device;
-    }
-    cl_context Computer::getContext() const{
-        return context;
-    }
-    cl_command_queue Computer::getQueue() const{
-        return queue;
+    error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
+    checkError("Computer [compute]");
+    
+    error = clFinish(queue);
+    checkError("Computer [compute]");
+}
+void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size){
+    prog.checkProgram(context, device);
+    cl_program prog_program = prog.getProgram(context);
+    
+    kern.checkKernel(prog_program);
+    cl_kernel kern_kernel = kern.getKernel(prog_program);
+
+    size_t count = args.size();
+    for (size_t i(0); i < count; i++) {
+        ArgumentBase* curr = args.at(i);
+        bool sended = curr->checkBuffer(context);
+        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+
+        cl_mem buf = curr->getBuffer(context);
+        error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
+        checkError("Computer [compute]");
     }
 
-    void Computer::receive(const std::vector<ArgumentBase*>& args){
-        size_t count = args.size();
-        for(size_t i(0); i < count; i++){
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+    error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
+    checkError("Computer [compute]");
+    
+    error = clFinish(queue);
+    checkError("Computer [compute]");
+}
 
-            error = clEnqueueReadBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
-            checkError("Computer [receive data]");
-        }
-        error = clFinish(queue);
+cl_device_id ecl::Computer::getDevice() const{
+    return device;
+}
+cl_context ecl::Computer::getContext() const{
+    return context;
+}
+cl_command_queue ecl::Computer::getQueue() const{
+    return queue;
+}
+
+void ecl::Computer::receive(const std::vector<ArgumentBase*>& args){
+    size_t count = args.size();
+    for(size_t i(0); i < count; i++){
+        ArgumentBase* curr = args.at(i);
+        bool sended = curr->checkBuffer(context);
+        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+
+        error = clEnqueueReadBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
         checkError("Computer [receive data]");
     }
+    error = clFinish(queue);
+    checkError("Computer [receive data]");
+}
 
-    void Computer::release(const std::vector<ArgumentBase*>& args){
-        for(auto* arg : args)
-            arg->clearBuffer(context);
-        
-        error = clFinish(queue);
-        checkError("Computer [clear data]");
-    }
+void ecl::Computer::release(const std::vector<ArgumentBase*>& args){
+    for(auto* arg : args)
+        arg->clearBuffer(context);
+    
+    error = clFinish(queue);
+    checkError("Computer [clear data]");
+}
 
-    void Computer::grab(const std::vector<ArgumentBase*>& args){
-        receive(args);
-        release(args);
-    }
+void ecl::Computer::grab(const std::vector<ArgumentBase*>& args){
+    receive(args);
+    release(args);
+}
 
-    Computer::~Computer(){
-        error = clReleaseCommandQueue(queue);
-        checkError("Computer [free]");
-        error = clReleaseContext(context);
-        checkError("Computer [free]");
-    }
+ecl::Computer::~Computer(){
+    error = clReleaseCommandQueue(queue);
+    checkError("Computer [free]");
+    error = clReleaseContext(context);
+    checkError("Computer [free]");
+}
 
-    // Thread
-    Thread::Thread(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, Computer* video){
-        this->video = video;
-        this->args = args;
+// Thread
+ecl::Thread::Thread(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, Computer* video){
+    this->video = video;
+    this->args = args;
 
-        cl_context context = video->getContext();
-        cl_device_id device = video->getDevice();
-        cl_command_queue queue = video->getQueue();
+    cl_context context = video->getContext();
+    cl_device_id device = video->getDevice();
+    cl_command_queue queue = video->getQueue();
 
-        prog.checkProgram(context, device);
-        cl_program prog_program = prog.getProgram(context);
-        
-        kern.checkKernel(prog_program);
-        cl_kernel kern_kernel = kern.getKernel(prog_program);
+    prog.checkProgram(context, device);
+    cl_program prog_program = prog.getProgram(context);
+    
+    kern.checkKernel(prog_program);
+    cl_kernel kern_kernel = kern.getKernel(prog_program);
 
-        size_t count = args.size();
-        for (size_t i(0); i < count; i++) {
-            ArgumentBase* curr = args.at(i);
-            bool sended = curr->checkBuffer(context);
-            if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+    size_t count = args.size();
+    for (size_t i(0); i < count; i++) {
+        ArgumentBase* curr = args.at(i);
+        bool sended = curr->checkBuffer(context);
+        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
 
-            cl_mem buf = curr->getBuffer(context);
-            error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
-            checkError("Thread [compute]");
-        }
-
-        error = clEnqueueTask(queue, kern_kernel, 0, nullptr, &sync);
+        cl_mem buf = curr->getBuffer(context);
+        error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
         checkError("Thread [compute]");
     }
-    void Thread::join(){
-        error = clWaitForEvents(1, &sync);
-        checkError("Thread [join]");
 
-        video->receive(args);
-        readed = true;
-    }
-    Thread::~Thread(){
-        clReleaseEvent(sync);
-        checkError("Thread [free]");
-        if(!readed) video->receive(args);
-    }
+    error = clEnqueueTask(queue, kern_kernel, 0, nullptr, &sync);
+    checkError("Thread [compute]");
+}
+void ecl::Thread::join(){
+    error = clWaitForEvents(1, &sync);
+    checkError("Thread [join]");
+
+    video->receive(args);
+    readed = true;
+}
+ecl::Thread::~Thread(){
+    clReleaseEvent(sync);
+    checkError("Thread [free]");
+    if(!readed) video->receive(args);
 }

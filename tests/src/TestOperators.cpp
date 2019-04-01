@@ -20,7 +20,7 @@ TEST_CASE("Testing variable operators"){
 }
 
 TEST_CASE("Testing array operators"){
-    ecl::Array<int> a(new int[5]{1, 2, 3, 4, 5}, 5, ecl::CONTROL::FREE);
+    ecl::Array<int> a(new int[5]{1, 2, 3, 4, 5}, 5, ecl::CONTROL::BIND);
     for(size_t i = 0; i < 5; i++)
         REQUIRE(a[i] == i + 1);
 }
