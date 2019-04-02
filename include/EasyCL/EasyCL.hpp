@@ -65,7 +65,7 @@ namespace ecl{
         std::string source;
 
         std::string getBuildError(cl_context, cl_device_id);
-    
+        void clearFields();
     public:
         Program(const char*);
         Program(const std::string&);
@@ -105,6 +105,8 @@ namespace ecl{
         std::map<cl_program, cl_kernel> kernel; // карта ядер по программам
         std::string name;
 
+        void clearFields();
+
     public:
         Kernel(const char*);
         Kernel(const std::string&);
@@ -142,6 +144,8 @@ namespace ecl{
         size_t data_size = 0; // размер массива данных
         cl_mem_flags memory_type = 0; // тип используемой памяти
 
+        virtual void clearFields();
+
     public:
         ArgumentBase();
         ArgumentBase(const void*, size_t);
@@ -171,6 +175,8 @@ namespace ecl{
             T local_value;
             CONTROL control = CONTROL::FREE;
         
+            void clearFields() override;
+
         public:
             Variable();
             Variable(const T&);
@@ -193,6 +199,8 @@ namespace ecl{
             Variable<T>& operator-=(const T&);
             Variable<T>& operator*=(const T&);
             Variable<T>& operator/=(const T&);
+            bool operator==(const T&);
+            bool operator!=(const T&);
             Variable<T> operator+(const T&);
             Variable<T> operator-(const T&);
             Variable<T> operator*(const T&);
@@ -207,6 +215,8 @@ namespace ecl{
         private:
             CONTROL control = CONTROL::FREE;
         
+            void clearFields() override;
+
         public:
             Array();
             Array(size_t);
@@ -629,6 +639,12 @@ std::string ecl::Program::getBuildError(cl_context context, cl_device_id device)
     return info;
 }
 
+void ecl::Program::clearFields(){
+    for(const auto& p : program) clReleaseProgram(p.second);
+    source.clear();
+    program.clear();
+}
+
 ecl::Program::Program(const char* src){
     source = src;
 }
@@ -640,7 +656,7 @@ ecl::Program::Program(const Program& other){
     source = other.source;
 }
 ecl::Program& ecl::Program::operator=(const Program& other){
-    this->~Program();
+    clearFields();
     source = other.source;
 
     return *this;
@@ -650,14 +666,14 @@ ecl::Program::Program(Program&& other){
     source = other.source;
     program = std::move(other.program);
 
-    other.~Program();
+    other.clearFields();
 }
 ecl::Program& ecl::Program::operator=(Program&& other){
-    this->~Program();
+    clearFields();
     source = other.source;
     program = std::move(other.program);
 
-    other.~Program();
+    other.clearFields();
 
     return *this;
 }
@@ -751,12 +767,14 @@ bool ecl::Program::checkProgram(cl_context context, cl_device_id device){
 }
 
 ecl::Program::~Program(){
-    for(const auto& p : program) clReleaseProgram(p.second);
-    program.clear();
-    source.clear();
+    clearFields();
 }
 
 // Kernel
+void ecl::Kernel::clearFields(){
+    for(const auto& p : kernel) clReleaseKernel(p.second);
+    name.clear();
+}
 ecl::Kernel::Kernel(const char* name){
     this->name = name;
 }
@@ -768,7 +786,7 @@ ecl::Kernel::Kernel(const Kernel& other){
     name = other.name;
 }
 ecl::Kernel& ecl::Kernel::operator=(const Kernel& other){
-    this->~Kernel();
+    clearFields();
     name = other.name;
 
     return *this;
@@ -778,14 +796,14 @@ ecl::Kernel::Kernel(Kernel&& other){
     name = other.name;
     kernel = std::move(other.kernel);
 
-    other.~Kernel();
+    other.clearFields();
 }
 ecl::Kernel& ecl::Kernel::operator=(Kernel&& other){
-    this->~Kernel();
+    clearFields();
     name = other.name;
     kernel = std::move(other.kernel);
 
-    other.~Kernel();
+    other.clearFields();
 
     return *this;
 }
@@ -857,11 +875,17 @@ bool ecl::Kernel::checkKernel(cl_program program){
 }
 
 ecl::Kernel::~Kernel(){
-    for(const auto& p : kernel) clReleaseKernel(p.second);
-    name.clear();
+    clearFields();
 }
 
 // ArgumentBase
+void ecl::ArgumentBase::clearFields(){
+    for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
+    data_ptr = nullptr;
+    data_size = 0;
+    memory_type = 0;
+    buffer.clear();
+}
 ecl::ArgumentBase::ArgumentBase() {
     data_ptr = nullptr;
     data_size = 0;
@@ -884,17 +908,17 @@ ecl::ArgumentBase::ArgumentBase(ArgumentBase&& other){
     memory_type = other.memory_type;
     buffer = std::move(other.buffer);
 
-    other.~ArgumentBase();
+    other.clearFields();
 }
 ecl::ArgumentBase& ecl::ArgumentBase::operator=(ArgumentBase&& other){
-    this->~ArgumentBase();
+    clearFields();
 
     data_size = other.data_size;
     data_ptr = other.data_ptr;
     memory_type = other.memory_type;
     buffer = std::move(other.buffer);
 
-    other.~ArgumentBase();
+    other.clearFields();
 
     return *this;
 }
@@ -949,14 +973,16 @@ void ecl::ArgumentBase::clearBuffer(cl_context context){
 }
 
 ecl::ArgumentBase::~ArgumentBase(){
-    for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
-    data_ptr = nullptr;
-    data_size = 0;
-    memory_type = 0;
-    buffer.clear();
+    clearFields();
 }
 
 // Variable
+template<typename T>
+void ecl::Variable<T>::clearFields(){
+    ArgumentBase::clearFields();
+    local_value.~T();
+}
+
 template<typename T>
 ecl::Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T)){
 }
@@ -980,7 +1006,7 @@ ecl::Variable<T>::Variable(const Variable<T>& other) : ArgumentBase(&local_value
 }
 template<typename T>
 ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
-    this->~Variable();
+    clearFields();
 
     local_value = other.local_value;
     data_ptr = &local_value;
@@ -995,11 +1021,11 @@ ecl::Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other))
     local_value = other.local_value;
     data_ptr = &local_value;
 
-    other.~Variable();
+    other.clearFields();
 }
 template<typename T>
 ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
-    this->~Variable();
+    clearFields();
 
     data_size = other.data_size;
     memory_type = other.memory_type;
@@ -1008,7 +1034,7 @@ ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
     local_value = other.local_value;
     data_ptr = &local_value;
 
-    other.~Variable();
+    other.clearFields();
     return *this;
 }
 
@@ -1060,6 +1086,15 @@ ecl::Variable<T>& ecl::Variable<T>::operator/=(const T& value){
 }
 
 template<typename T>
+bool ecl::Variable<T>::operator==(const T& value){
+    return local_value == value;
+}
+template<typename T>
+bool ecl::Variable<T>::operator!=(const T& value){
+    return local_value == value;
+}
+
+template<typename T>
 ecl::Variable<T> ecl::Variable<T>::operator+(const T& value){
     Variable<T> result(*this);
     result += value;
@@ -1091,12 +1126,21 @@ ecl::Variable<T>::operator T&(){
 
 template<typename T>
 ecl::Variable<T>::~Variable(){
-    local_value.~T();
+    clearFields();
 }
 
 // Array
 template<typename T>
-ecl::Array<T>::Array() : ArgumentBase(nullptr, 0, FREE){
+void ecl::Array<T>::clearFields(){
+    ArgumentBase::clearFields();
+    if(control == BIND){
+        delete[] static_cast<T*>(data_ptr);
+        data_ptr = nullptr;
+    }
+}
+
+template<typename T>
+ecl::Array<T>::Array() : ArgumentBase(nullptr, 0){
 }
 
 template<typename T>
@@ -1132,7 +1176,7 @@ ecl::Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_s
 }
 template<typename T>
 ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
-    this->~Array();
+    clearFields();
 
     control = BIND;
     size_t count = data_size / sizeof(T);
@@ -1151,11 +1195,11 @@ ecl::Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
     control = other.control;
     other.control = FREE;
 
-    other.~Array();
+    other.clearFields();
 }
 template<typename T>
 ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
-    this->~Array();
+    clearFields();
 
     data_ptr = other.data_ptr;
     data_size = other.data_size;
@@ -1165,7 +1209,7 @@ ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
 
     other.control = FREE;
 
-    other.~Array();
+    other.clearFields();
     return *this;
 }
 
@@ -1181,7 +1225,7 @@ T* ecl::Array<T>::getArray(){
 
 template<typename T>
 void ecl::Array<T>::setArray(const T* array, size_t array_size){
-    this->~Array();
+    clearFields();
 
     this->setDataPtr(array);
     this->setDataSize(array_size * sizeof(T));
@@ -1190,7 +1234,7 @@ void ecl::Array<T>::setArray(const T* array, size_t array_size){
 }
 template<typename T>
 void ecl::Array<T>::setArray(T* array, size_t array_size, ACCESS memory_access){
-    this->~Array();
+    clearFields();
 
     this->setDataPtr(array);
     this->setDataSize(array_size * sizeof(T));
@@ -1210,10 +1254,7 @@ ecl::Array<T>::operator T*(){
 
 template<typename T>
 ecl::Array<T>::~Array(){
-    if(control == BIND){
-        delete[] static_cast<T*>(data_ptr);
-        data_ptr = nullptr;
-    } 
+    clearFields();
 }
 
 // GPU
