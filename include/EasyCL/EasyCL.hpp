@@ -166,7 +166,7 @@ namespace ecl{
         ~ArgumentBase();
     };
 
-    template <typename T> class Variable : public ArgumentBase{
+    template<typename T> class Variable : public ArgumentBase{
         private:
             T local_value;
             CONTROL control = CONTROL::FREE;
@@ -186,36 +186,24 @@ namespace ecl{
             const T& getValue() const;
             void setValue(const T&);
 
-            const Variable<T>& operator++(int);
-            const Variable<T>& operator--(int);
-            const Variable<T>& operator=(const T&);
-            const Variable<T>& operator+=(const T&);
-            const Variable<T>& operator-=(const T&);
-            const Variable<T>& operator*=(const T&);
-            const Variable<T>& operator/=(const T&);
-            bool operator==(const T&) const;
+            Variable<T>& operator++(int);
+            Variable<T>& operator--(int);
+            Variable<T>& operator=(const T&);
+            Variable<T>& operator+=(const T&);
+            Variable<T>& operator-=(const T&);
+            Variable<T>& operator*=(const T&);
+            Variable<T>& operator/=(const T&);
             Variable<T> operator+(const T&);
             Variable<T> operator-(const T&);
             Variable<T> operator*(const T&);
             Variable<T> operator/(const T&);
 
-            const Variable<T>& operator+=(const Variable<T>&);
-            const Variable<T>& operator-=(const Variable<T>&);
-            const Variable<T>& operator*=(const Variable<T>&);
-            const Variable<T>& operator/=(const Variable<T>&);
-            bool operator==(const Variable<T>&) const;
-            Variable<T> operator+(const Variable<T>&);
-            Variable<T> operator-(const Variable<T>&);
-            Variable<T> operator*(const Variable<T>&);
-            Variable<T> operator/(const Variable<T>&);
-
-            template <typename U>
-            friend std::ostream& operator <<(std::ostream&, const Variable<U>&);
+            operator T&();
 
             ~Variable();
     };
 
-    template <typename T> class Array : public ArgumentBase{
+    template<typename T> class Array : public ArgumentBase{
         private:
             CONTROL control = CONTROL::FREE;
         
@@ -236,8 +224,7 @@ namespace ecl{
             T* getArray();
 
             T& operator[](size_t i);
-            template <typename U>
-            friend std::ostream& operator <<(std::ostream&, const Array<U>&);
+            operator T*();
 
             void setArray(const T*, size_t);
             void setArray(T*, size_t, ACCESS);
@@ -973,25 +960,25 @@ ecl::ArgumentBase::~ArgumentBase(){
 template<typename T>
 ecl::Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T)){
 }
-template <typename T>
+template<typename T>
 ecl::Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T)){
     local_value = value;
 }
 
-template <typename T>
+template<typename T>
 ecl::Variable<T>::Variable(ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
 }
 
-template <typename T>
+template<typename T>
 ecl::Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
     local_value = value;
 }
 
-template <typename T>
+template<typename T>
 ecl::Variable<T>::Variable(const Variable<T>& other) : ArgumentBase(&local_value, other.data_size, other.memory_type){
     local_value = other.local_value;
 }
-template <typename T>
+template<typename T>
 ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
     this->~Variable();
 
@@ -1003,14 +990,14 @@ ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
     return *this;
 }
 
-template <typename T>
+template<typename T>
 ecl::Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other)){
     local_value = other.local_value;
     data_ptr = &local_value;
 
     other.~Variable();
 }
-template <typename T>
+template<typename T>
 ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
     this->~Variable();
 
@@ -1025,175 +1012,117 @@ ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
     return *this;
 }
 
-template <typename T>
+template<typename T>
 const T& ecl::Variable<T>::getValue() const{
     return local_value;
 }
 
-template <typename T>
+template<typename T>
 void ecl::Variable<T>::setValue(const T& value){
     local_value = value;
 }
 
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator++(int){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator++(int){
     ++local_value;
     return *this;
 }
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator--(int){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator--(int){
     --local_value;
     return *this;
 }
 
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator=(const T& value){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator=(const T& value){
     setValue(value);
     return *this;
 }
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator+=(const T& value){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator+=(const T& value){
     setValue(local_value + value);
     return *this;
 }
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator-=(const T& value){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator-=(const T& value){
     setValue(local_value - value);
     return *this;
 }
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator*=(const T& value){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator*=(const T& value){
     setValue(local_value * value);
     return *this;
 }
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator/=(const T& value){
+template<typename T>
+ecl::Variable<T>& ecl::Variable<T>::operator/=(const T& value){
     setValue(local_value / value);
     return *this;
 }
-template <typename T>
-bool ecl::Variable<T>::operator==(const T& value) const{
-    return local_value == value;
-}
 
-template <typename T>
+template<typename T>
 ecl::Variable<T> ecl::Variable<T>::operator+(const T& value){
     Variable<T> result(*this);
     result += value;
     return result;
 }
-template <typename T>
+template<typename T>
 ecl::Variable<T> ecl::Variable<T>::operator-(const T& value){
     Variable<T> result(*this);
     result -= value;
     return result;
 }
-template <typename T>
+template<typename T>
 ecl::Variable<T> ecl::Variable<T>::operator*(const T& value){
     Variable<T> result(*this);
     result *= value;
     return result;
 }
-template <typename T>
+template<typename T>
 ecl::Variable<T> ecl::Variable<T>::operator/(const T& value){
     Variable<T> result(*this);
     result /= value;
     return result;
 }
 
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator+=(const Variable<T>& other){
-    setValue(local_value + other.local_value);
-    return *this;
-}
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator-=(const Variable<T>& other){
-    setValue(local_value - other.local_value);
-    return *this;
-}
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator*=(const Variable<T>& other){
-    setValue(local_value * other.local_value);
-    return *this;
-}
-template <typename T>
-const ecl::Variable<T>& ecl::Variable<T>::operator/=(const Variable<T>& other){
-    setValue(local_value / other.local_value);
-    return *this;
-}
-template <typename T>
-bool ecl::Variable<T>::operator==(const Variable<T>& other) const{
-    return local_value == other.local_value;
+template<typename T>
+ecl::Variable<T>::operator T&(){
+    return local_value;
 }
 
-template <typename T>
-ecl::Variable<T> ecl::Variable<T>::operator+(const Variable<T>& other){
-    Variable<T> result(*this);
-    result += other.local_value;
-    return result;
-}
-template <typename T>
-ecl::Variable<T> ecl::Variable<T>::operator-(const Variable<T>& other){
-    Variable<T> result(*this);
-    result -= other.local_value;
-    return result;
-}
-template <typename T>
-ecl::Variable<T> ecl::Variable<T>::operator*(const Variable<T>& other){
-    Variable<T> result(*this);
-    result *= other.local_value;
-    return result;
-}
-template <typename T>
-ecl::Variable<T> ecl::Variable<T>::operator/(const Variable<T>& other){
-    Variable<T> result(*this);
-    result /= other.local_value;
-    return result;
-}
-
-namespace ecl{
-    template <typename T>
-    std::ostream& operator<<(std::ostream& s, const Variable<T>& other){
-        s << other.getValue();
-        return s;
-    }
-}
-
-template <typename T>
+template<typename T>
 ecl::Variable<T>::~Variable(){
     local_value.~T();
 }
 
-
 // Array
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array() : ArgumentBase(nullptr, 0, FREE){
 }
 
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array(size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T)){
     this->control = BIND;
     T* temp = new T[array_size];
     data_ptr = temp;
 }
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array(size_t array_size, ACCESS memory_access) : ArgumentBase(nullptr, array_size * sizeof(T), memory_access){
     this->control = BIND;
     T* temp = new T[array_size];
     data_ptr = temp;
 }
 
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array(const T* array, size_t array_size, CONTROL control) : ArgumentBase(static_cast<const void*>(array), array_size * sizeof(T)){
     this->control = control;
 }
 
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array(T* array, size_t array_size, ACCESS memory_access, CONTROL control) : ArgumentBase(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
     this->control = control;
 }
 
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_size, other.memory_type){
     control = BIND;
     size_t count = data_size / sizeof(T);
@@ -1201,7 +1130,7 @@ ecl::Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_s
 
     std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
 }
-template <typename T>
+template<typename T>
 ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
     this->~Array();
 
@@ -1217,14 +1146,14 @@ ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
     return *this;
 }
 
-template <typename T>
+template<typename T>
 ecl::Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
     control = other.control;
     other.control = FREE;
 
     other.~Array();
 }
-template <typename T>
+template<typename T>
 ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
     this->~Array();
 
@@ -1240,25 +1169,17 @@ ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
     return *this;
 }
 
-template <typename T>
+template<typename T>
 const T* ecl::Array<T>::getConstArray() const{
     return static_cast<const T*>(data_ptr);
 }
 
-template <typename T>
+template<typename T>
 T* ecl::Array<T>::getArray(){
     return static_cast<T*>(data_ptr);
 }
 
-namespace ecl{
-    template <typename T>
-    std::ostream& operator <<(std::ostream& s, const Array<T>& other){
-        s << other.getConstArray();
-        return s;
-    }
-}
-
-template <typename T>
+template<typename T>
 void ecl::Array<T>::setArray(const T* array, size_t array_size){
     this->~Array();
 
@@ -1267,7 +1188,7 @@ void ecl::Array<T>::setArray(const T* array, size_t array_size){
     this->setMemoryType(READ);
     control = FREE;
 }
-template <typename T>
+template<typename T>
 void ecl::Array<T>::setArray(T* array, size_t array_size, ACCESS memory_access){
     this->~Array();
 
@@ -1277,12 +1198,17 @@ void ecl::Array<T>::setArray(T* array, size_t array_size, ACCESS memory_access){
     control = FREE;
 }
 
-template <typename T>
+template<typename T>
 T& ecl::Array<T>::operator[](size_t i){
     return getArray()[i];
 }
 
-template <typename T>
+template<typename T>
+ecl::Array<T>::operator T*(){
+    return getArray();
+}
+
+template<typename T>
 ecl::Array<T>::~Array(){
     if(control == BIND){
         delete[] static_cast<T*>(data_ptr);

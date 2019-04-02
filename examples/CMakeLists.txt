@@ -20,3 +20,4 @@ configure_file(kernels/Struct.cl
 easycl_add_example(ExampleSIMD src/ExampleSIMD.cpp)
 easycl_add_example(ExampleSingleThread src/ExampleSingleThread.cpp)
 easycl_add_example(ExampleStruct src/ExampleStruct.cpp)
+easycl_add_example(ExamplePass src/ExamplePass.cpp)

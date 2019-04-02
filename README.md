@@ -21,7 +21,7 @@ The library allows you to bypass some of the inconveniences of the original *Ope
  2) Copy `EasyCL.hpp` to your project
 
 ## Hello, World (Single Thread)
- 1) Copy 'EasyCL.hpp' to project folder
+ 1) Copy `EasyCL.hpp` to project folder
  2) Create `main.cpp`:
 
 ```c++
@@ -69,7 +69,7 @@ Output:
 ```
 
 ## Hello, World (SIMD)
- 1) Copy 'EasyCL.hpp' to project folder
+ 1) Copy `EasyCL.hpp` to project folder
  2) Create `main.cpp`:
 
 ```c++
@@ -116,7 +116,7 @@ Output:
 ```
 
 ## Hello, World (Struct)
- 1) Copy 'EasyCL.hpp' to project folder
+ 1) Copy `EasyCL.hpp` to project folder
  2) Create `main.cpp`:
 
 ```c++
@@ -215,13 +215,13 @@ var += const T&;
 var -= const T&;
 var *= const T&;
 var /= const T&;
-var == const T&;
 
-var += const Variable<T>&;
-var -= const Variable<T>&;
-var *= const Variable<T>&;
-var /= const Variable<T>&;
-var == const Variable<T>&;
+Variable<T>& = var + const T&;
+Variable<T>& = var - const T&;
+Variable<T>& = var * const T&;
+Variable<T>& = var / const T&;
+
+operator T&(); // casting-overload
 ```
 
 Example:
@@ -234,7 +234,22 @@ a -= b; // a = 0
 
 b.setValue(3); // b = 3
 b = 3; // same
+
+b = b * a; // b = 0
 ```
+
+Example:
+```c++
+void foo(int a){
+    std::cout << a << std::endl; // 5
+}
+
+ecl::Variable<int> a = 5;
+foo(a);
+```
+
+*Note*: So, if any function takes a reference or const reference, or value of `T` you may pass `Variable<T>` instead!
+
 
 You can use (copy / move) (constructors / operator=):
 ```c++
@@ -393,9 +408,29 @@ now 'b' is empty
 */
 ```
 
+Also as in **Variables**, you can use overloaded casting:
+```c++
+operator T*();
+```
+
+Example:
+```c++
+void foo(const int* a){
+    std::cout << a[0] << std::endl; // 1
+    std::cout << a[1] << std::endl; // 2
+    std::cout << a[2] << std::endl; // 3
+}
+
+int A[] = {1, 2, 3};
+ecl::Array<int> a(A, 3);
+
+foo(a);
+```
+
+
 You can use arrays with ostreams as a pointer:
 ```c++
-ostream& << const Array<T>&;
+ecl::ostream& << const ecl::Array<T>&;
 ```
 
 Example:
