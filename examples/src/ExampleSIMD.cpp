@@ -20,5 +20,6 @@ int main(){
     std::cout << std::endl;
 
     ecl::System::free();
+
     return 0;
 }

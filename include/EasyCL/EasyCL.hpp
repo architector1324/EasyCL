@@ -1091,7 +1091,7 @@ bool ecl::Variable<T>::operator==(const T& value){
 }
 template<typename T>
 bool ecl::Variable<T>::operator!=(const T& value){
-    return local_value == value;
+    return local_value != value;
 }
 
 template<typename T>
