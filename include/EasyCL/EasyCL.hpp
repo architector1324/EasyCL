@@ -252,18 +252,25 @@ namespace ecl{
         public:
             Computer(size_t, const Platform*, DEVICE);
 
-            void send(const std::vector<ArgumentBase*>&); // отправить данные на устройство
-            // выполнить программу на устройстве
+			cl_device_id getDevice() const;
+			cl_context getContext() const;
+			cl_command_queue getQueue() const;
+
+			void send(ArgumentBase&);
+			void receive(ArgumentBase&);
+			void release(ArgumentBase&);
+			void grab(ArgumentBase&);
+
+            void send(const std::vector<ArgumentBase*>&);
+			void receive(const std::vector<ArgumentBase*>&);
+			void release(const std::vector<ArgumentBase*>&);
+			void grab(const std::vector<ArgumentBase*>&);
+
             void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&, const std::vector<size_t>&);
             void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<size_t>&);
 
-            cl_device_id getDevice() const;
-            cl_context getContext() const;
-            cl_command_queue getQueue() const;
-
-            void receive(const std::vector<ArgumentBase*>&); // получить данные с устройства
-            void release(const std::vector<ArgumentBase*>&);
-            void grab(const std::vector<ArgumentBase*>&);
+			friend Computer& operator<<(Computer&, ArgumentBase&);
+			friend Computer& operator>>(Computer&, ArgumentBase&);
 
             ~Computer();
     };
@@ -889,12 +896,12 @@ void ecl::ArgumentBase::clearFields(){
 ecl::ArgumentBase::ArgumentBase() {
     data_ptr = nullptr;
     data_size = 0;
-    memory_type = CL_MEM_READ_WRITE;
+    memory_type = READ_WRITE;
 }
 ecl::ArgumentBase::ArgumentBase(const void* data_ptr, size_t data_size){
     this->data_ptr = (void*)data_ptr;
     this->data_size = data_size;
-    memory_type = CL_MEM_READ_WRITE;
+    memory_type = READ;
 }
 ecl::ArgumentBase::ArgumentBase(void* data_ptr, size_t data_size, cl_mem_flags memory_type){
     this->data_ptr = data_ptr;
@@ -1140,11 +1147,11 @@ void ecl::Array<T>::clearFields(){
 }
 
 template<typename T>
-ecl::Array<T>::Array() : ArgumentBase(nullptr, 0){
+ecl::Array<T>::Array() : ArgumentBase(){
 }
 
 template<typename T>
-ecl::Array<T>::Array(size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T)){
+ecl::Array<T>::Array(size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T), READ_WRITE){
     this->control = BIND;
     T* temp = new T[array_size];
     data_ptr = temp;
@@ -1268,16 +1275,18 @@ ecl::Computer::Computer(size_t i, const Platform* platform, DEVICE dev){
     checkError("Computer [init]");
 }
 
+
+void ecl::Computer::send(ecl::ArgumentBase& arg) {
+	arg.checkBuffer(context);
+
+	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
+	checkError("Computer [send data]");
+}
 void ecl::Computer::send(const std::vector<ArgumentBase*>& args){
     size_t count = args.size();
-    for(size_t i(0); i < count; i++){
-        ArgumentBase* curr = args.at(i);
-        curr->checkBuffer(context);
-
-        error = clEnqueueWriteBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
-        checkError("Computer [send data]");
-    }
-    error = clFinish(queue);
+    for(size_t i(0); i < count; i++) send(*args[i]);
+    
+	error = clFinish(queue);
     checkError("Computer [send data]");
 }
 
@@ -1340,31 +1349,53 @@ cl_command_queue ecl::Computer::getQueue() const{
     return queue;
 }
 
+void ecl::Computer::receive(ArgumentBase& arg) {
+	bool sended = arg.checkBuffer(context);
+	if (!sended) throw std::runtime_error("Computer [receive]: argument wasn't sent to computer");
+	if (arg.getMemoryType() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
+
+	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
+	checkError("Computer [receive data]");
+}
 void ecl::Computer::receive(const std::vector<ArgumentBase*>& args){
     size_t count = args.size();
-    for(size_t i(0); i < count; i++){
-        ArgumentBase* curr = args.at(i);
-        bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+	for (size_t i(0); i < count; i++) receive(*args[i]);
 
-        error = clEnqueueReadBuffer(queue, curr->getBuffer(context), CL_FALSE, 0, curr->getDataSize(), curr->getDataPtr(), 0, nullptr, nullptr);
-        checkError("Computer [receive data]");
-    }
     error = clFinish(queue);
     checkError("Computer [receive data]");
 }
 
+void ecl::Computer::release(ArgumentBase& arg) {
+	arg.clearBuffer(context);
+}
+
 void ecl::Computer::release(const std::vector<ArgumentBase*>& args){
-    for(auto* arg : args)
-        arg->clearBuffer(context);
+	for (auto* arg : args) release(*arg);
     
     error = clFinish(queue);
     checkError("Computer [clear data]");
 }
 
+void ecl::Computer::grab(ArgumentBase& arg) {
+	receive(arg);
+	release(arg);
+}
+
 void ecl::Computer::grab(const std::vector<ArgumentBase*>& args){
     receive(args);
     release(args);
+}
+
+namespace ecl {
+	Computer& operator<<(Computer& video, ArgumentBase& arg) {
+		video.send(arg);
+		return video;
+	}
+
+	Computer& operator>>(Computer& video, ArgumentBase& arg) {
+		video.receive(arg);
+		return video;
+	}
 }
 
 ecl::Computer::~Computer(){

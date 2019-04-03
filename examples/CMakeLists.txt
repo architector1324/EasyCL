@@ -13,6 +13,9 @@ configure_file(kernels/SingleThread.cl
 configure_file(kernels/Struct.cl
                kernels/Struct.cl COPYONLY)
 
+configure_file(kernels/Vectors.cl
+               kernels/Vectors.cl COPYONLY)
+
 ###############################################################################
 # Add Examples
 ###############################################################################
@@ -21,3 +24,4 @@ easycl_add_example(ExampleSIMD src/ExampleSIMD.cpp)
 easycl_add_example(ExampleSingleThread src/ExampleSingleThread.cpp)
 easycl_add_example(ExampleStruct src/ExampleStruct.cpp)
 easycl_add_example(ExamplePass src/ExamplePass.cpp)
+easycl_add_example(ExampleVectors src/ExampleVectors.cpp)

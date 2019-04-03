@@ -13,7 +13,7 @@ int main(){
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.send({&v});
+	video << v;
 
     ecl::Thread th(prog, kern, {&v}, &video);
     th.join();
