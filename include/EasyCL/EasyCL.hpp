@@ -176,9 +176,10 @@ namespace ecl{
         void* getDataPtr();
         std::size_t getDataSize() const;
         cl_mem_flags getMemoryType() const;
-        cl_mem getBuffer(cl_context) const; // получить указатель на буфер по контексту
+        cl_mem getBuffer(cl_context) const;
 
-        bool checkBuffer(cl_context); // проверить buffer на контекст
+        bool checkBuffer(cl_context) const;
+        void createBuffer(cl_context);
 
         void setDataPtr(void*);
         void setDataSize(std::size_t);
@@ -296,8 +297,8 @@ namespace ecl{
 			void release(const std::vector<ArgumentBase*>&);
 			void grab(const std::vector<ArgumentBase*>&);
 
-            void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
-            void compute(Program&, Kernel&, const std::vector<ArgumentBase*>&, const std::vector<std::size_t>&);
+            void compute(Program&, Kernel&, const std::vector<const ArgumentBase*>&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
+            void compute(Program&, Kernel&, const std::vector<const ArgumentBase*>&, const std::vector<std::size_t>&);
 
 			friend Computer& operator<<(Computer&, ArgumentBase&);
 			friend Computer& operator>>(Computer&, ArgumentBase&);
@@ -986,14 +987,15 @@ cl_mem ecl::ArgumentBase::getBuffer(cl_context context) const{
     return buffer.at(context);
 }
 
-bool ecl::ArgumentBase::checkBuffer(cl_context context){
-    if(buffer.find(context) == buffer.end()){
+bool ecl::ArgumentBase::checkBuffer(cl_context context) const{
+    if(buffer.find(context) == buffer.end()) return false;
+    return true;
+}
+void ecl::ArgumentBase::createBuffer(cl_context context){
+    if(!checkBuffer(context)){
         buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
         checkError("ArgumentBase [check]");
-
-        return false;
     }
-    return true;
 }
 
 void ecl::ArgumentBase::setDataPtr(void* data_ptr){
@@ -1336,7 +1338,7 @@ ecl::Computer::Computer(std::size_t i, const Platform* platform, DEVICE dev){
 
 
 void ecl::Computer::send(ecl::ArgumentBase& arg, bool sync) {
-	arg.checkBuffer(context);
+	arg.createBuffer(context);
 
 	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
 	checkError("Computer [send data]");
@@ -1354,7 +1356,7 @@ void ecl::Computer::send(const std::vector<ArgumentBase*>& args){
     checkError("Computer [send data]");
 }
 
-void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
+void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
     prog.checkProgram(context, device);
     cl_program prog_program = prog.getProgram(context);
     
@@ -1363,7 +1365,7 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<Argum
 
     std::size_t count = args.size();
     for (std::size_t i(0); i < count; i++) {
-        ArgumentBase* curr = args.at(i);
+        const ArgumentBase* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
         if(!sended) throw std::runtime_error("argument wasn't sent to computer");
 
@@ -1378,7 +1380,7 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<Argum
     error = clFinish(queue);
     checkError("Computer [compute]");
 }
-void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<std::size_t>& global_work_size){
+void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<std::size_t>& global_work_size){
     prog.checkProgram(context, device);
     cl_program prog_program = prog.getProgram(context);
     
@@ -1387,7 +1389,7 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<Argum
 
     std::size_t count = args.size();
     for (std::size_t i(0); i < count; i++) {
-        ArgumentBase* curr = args.at(i);
+        const ArgumentBase* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
         if(!sended) throw std::runtime_error("argument wasn't sent to computer");
 
