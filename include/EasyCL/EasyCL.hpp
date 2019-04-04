@@ -3,12 +3,12 @@
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include <CL/cl.h>
 #include <cstddef>
-#include <stdexcept>
-#include <vector>
-#include <string>
-#include <map>
 #include <cstring>
 #include <fstream>
+#include <map>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace ecl{
     const std::size_t MAX_PLATFORMS_COUNT = 64;
