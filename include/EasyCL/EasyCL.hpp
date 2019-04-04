@@ -28,7 +28,6 @@ namespace ecl{
         static std::string getErrorString();
 
     public:
-		Error() = delete;
         static void checkError(const std::string&);
     };
 
@@ -46,7 +45,7 @@ namespace ecl{
         void initDevices(std::vector<cl_device_id>&, cl_device_type);
         void freeDevices(std::vector<cl_device_id>&);
     public:
-        Platform() {};
+        Platform() = default;
         Platform(cl_platform_id);
 
         cl_device_id getDevice(std::size_t, DEVICE) const;
