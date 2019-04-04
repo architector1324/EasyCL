@@ -65,7 +65,7 @@ namespace ecl{
         std::string source;
 
         std::string getBuildError(cl_context, cl_device_id);
-        void clearFields();
+
     public:
         Program(const char*);
         Program(const std::string&);
@@ -97,6 +97,7 @@ namespace ecl{
 
         bool checkProgram(cl_context, cl_device_id);
 
+        void clearFields();
         ~Program();
     };
 
@@ -104,8 +105,6 @@ namespace ecl{
     private:
         std::map<cl_program, cl_kernel> kernel; // карта ядер по программам
         std::string name;
-
-        void clearFields();
 
     public:
         Kernel(const char*);
@@ -134,6 +133,8 @@ namespace ecl{
 
         cl_kernel getKernel(cl_program) const; // получить указатель на ядро
         bool checkKernel(cl_program); // проверить ядро на прграмму
+
+        void clearFields();
         ~Kernel();
     };
 
@@ -143,8 +144,6 @@ namespace ecl{
         void* data_ptr = nullptr; // указатель на массив данных
         size_t data_size = 0; // размер массива данных
         cl_mem_flags memory_type = 0; // тип используемой памяти
-
-        virtual void clearFields();
 
     public:
         ArgumentBase();
@@ -166,6 +165,7 @@ namespace ecl{
         void setMemoryType(cl_mem_flags);
 
         void clearBuffer(cl_context);
+        virtual void clearFields();
 
         ~ArgumentBase();
     };
@@ -174,8 +174,6 @@ namespace ecl{
         private:
             T local_value;
             CONTROL control = CONTROL::FREE;
-        
-            void clearFields() override;
 
         public:
             Variable();
@@ -207,15 +205,15 @@ namespace ecl{
             Variable<T> operator/(const T&);
 
             operator T&();
+            operator const T&() const;
 
+            void clearFields() override;
             ~Variable();
     };
 
     template<typename T> class Array : public ArgumentBase{
         private:
             CONTROL control = CONTROL::FREE;
-        
-            void clearFields() override;
 
         public:
             Array();
@@ -235,10 +233,12 @@ namespace ecl{
 
             T& operator[](size_t i);
             operator T*();
+            operator const T*() const;
 
             void setArray(const T*, size_t);
             void setArray(T*, size_t, ACCESS);
 
+            void clearFields() override;
             ~Array();
     };
 
@@ -1091,7 +1091,7 @@ bool ecl::Variable<T>::operator==(const T& value){
 }
 template<typename T>
 bool ecl::Variable<T>::operator!=(const T& value){
-    return local_value != value;
+    return local_value == value;
 }
 
 template<typename T>
@@ -1121,6 +1121,11 @@ ecl::Variable<T> ecl::Variable<T>::operator/(const T& value){
 
 template<typename T>
 ecl::Variable<T>::operator T&(){
+    return local_value;
+}
+
+template<typename T>
+ecl::Variable<T>::operator const T&() const{
     return local_value;
 }
 
@@ -1250,6 +1255,11 @@ T& ecl::Array<T>::operator[](size_t i){
 template<typename T>
 ecl::Array<T>::operator T*(){
     return getArray();
+}
+
+template<typename T>
+ecl::Array<T>::operator const T*() const{
+    return getConstArray();
 }
 
 template<typename T>

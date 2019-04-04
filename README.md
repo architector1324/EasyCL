@@ -38,7 +38,7 @@ int main(){
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.send({&a});
+    video << a;
 
     ecl::Thread th(prog, kern, {&a}, &video);
     th.join();
@@ -84,14 +84,15 @@ int main(){
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.send({&a});
+    video << a;
     video.compute(prog, kern, {&a}, {12}, {3});
-    video.grab({&a});
+    video >> a;
 
     for(size_t i = 0; i < 12; i++)
         std::cout << a[i] << " ";
     std::cout << std::endl;
 
+    video.release(a);
     ecl::System::free();
     return 0;
 }
@@ -115,7 +116,7 @@ Output:
 1 1 1 2 2 2 3 3 3 4 4 4
 ```
 
-## Hello, World (Struct)
+## Struct example
  1) Copy `EasyCL.hpp` to project folder
  2) Create `main.cpp`:
 
@@ -135,7 +136,7 @@ int main(){
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.send({&v});
+    video << v;
 
     ecl::Thread th(prog, kern, {&v}, &video);
     th.join();
@@ -178,7 +179,7 @@ Output:
 ## API
 ### Abstractions
 #### Arguments
-It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments:
+It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments that are inherited from `ArgumentBase`:
 ##### Variables
 ```c++
 ecl::Variable<T>();
@@ -547,25 +548,40 @@ auto plat = ecl::System::getPlatform(0); // first platform
 ecl::Computer video(0, plat, ecl::DEVICE::GPU); // first GPU on this platform
 ```
 
-Sending data to Device:
+Methods:
+1. Sending data to Device:
 ```c++
+void send(ArgumentBase& arg);
 void send(const std::vector<ArgumentBase*>& args);
 ```
-Receiving data from Device:
+Also you can use overloaded operator:
 ```c++
+video << ArgumentBase&;
+```
+
+2. Receiving data from Device:
+```c++
+void receive(ArgumentBase& arg);
 void receive(const std::vector<ArgumentBase*>& args);
 ```
-Releasing data in Device:
 ```c++
+video >> ArgumentBase&;
+```
+
+3. Releasing data in Device:
+```c++
+void release(ArgumentBase& arg);
 void release(const std::vector<ArgumentBase*>& args);
 ```
-Grabbing data from Device:
+
+4. Grabbing data from Device:
 ```c++
+void grab(ArgumentBase& arg);
 void grab(const std::vector<ArgumentBase*>& args);
 ```
 *Note*: it's just receives data from device and release it. 
 
-Execute program on Device (SIMD):
+5. Execute program on Device (SIMD):
 ```c++
 void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size);
 void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);

@@ -9,9 +9,9 @@ int main(){
     auto p = ecl::System::getPlatform(0);
     ecl::Computer video(0, p, ecl::DEVICE::GPU);
 
-    video.send({&a});
+	video << a;
     video.compute(prog, kern, {&a}, {12}, {3});
-    video.grab({&a});
+	video >> a;
 
     std::cout << a << std::endl;
 
@@ -19,6 +19,7 @@ int main(){
         std::cout << a[i] << " ";
     std::cout << std::endl;
 
+	video.release(a);
     ecl::System::free();
 
     return 0;
