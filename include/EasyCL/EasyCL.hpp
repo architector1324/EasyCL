@@ -28,6 +28,7 @@ namespace ecl{
         static std::string getErrorString();
 
     public:
+		Error() = delete;
         static void checkError(const std::string&);
     };
 
@@ -64,6 +65,7 @@ namespace ecl{
         static std::vector<const Platform*> platforms;
         static bool initialized;
     public:
+		System() = delete;
         static void init();
         static const Platform* getPlatform(std::size_t);
         static void free();
@@ -278,6 +280,7 @@ namespace ecl{
             cl_command_queue queue = nullptr; // очередь запросов на привязанное устройство
 
         public:
+			Computer() = delete;
             Computer(std::size_t, const Platform*, DEVICE);
 
 			cl_device_id getDevice() const;
@@ -314,6 +317,7 @@ namespace ecl{
 
             bool readed = false;
         public:
+			Thread() = delete;
             Thread(Program&, Kernel&, const std::vector<ArgumentBase*>&, Computer*);
             void join();
             ~Thread();
