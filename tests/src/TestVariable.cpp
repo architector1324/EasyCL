@@ -24,7 +24,7 @@ TEST_CASE("Overloaded Operators"){
 			test = (a == 1);
 			CHECK(test);
 
-			test = (a != 2);
+			test = (a != 3);
 			CHECK(test);
 		}
 

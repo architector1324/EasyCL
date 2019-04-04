@@ -286,10 +286,10 @@ namespace ecl{
 			cl_context getContext() const;
 			cl_command_queue getQueue() const;
 
-			void send(ArgumentBase&);
-			void receive(ArgumentBase&);
-			void release(ArgumentBase&);
-			void grab(ArgumentBase&);
+			void send(ArgumentBase&, bool sync = true);
+			void receive(ArgumentBase&, bool sync = true);
+			void release(ArgumentBase&, bool sync = true);
+			void grab(ArgumentBase&, bool sync = true);
 
             void send(const std::vector<ArgumentBase*>&);
 			void receive(const std::vector<ArgumentBase*>&);
@@ -1036,10 +1036,10 @@ void ecl::Variable<T>::clearFields(){
 }
 
 template<typename T>
-ecl::Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T)){
+ecl::Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T), READ_WRITE){
 }
 template<typename T>
-ecl::Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T)){
+ecl::Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T), READ_WRITE){
     local_value = value;
 }
 
@@ -1143,7 +1143,7 @@ bool ecl::Variable<T>::operator==(const T& value){
 }
 template<typename T>
 bool ecl::Variable<T>::operator!=(const T& value){
-    return local_value == value;
+    return local_value != value;
 }
 
 template<typename T>
@@ -1335,15 +1335,20 @@ ecl::Computer::Computer(std::size_t i, const Platform* platform, DEVICE dev){
 }
 
 
-void ecl::Computer::send(ecl::ArgumentBase& arg) {
+void ecl::Computer::send(ecl::ArgumentBase& arg, bool sync) {
 	arg.checkBuffer(context);
 
 	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
 	checkError("Computer [send data]");
+
+    if(sync){
+        error = clFinish(queue);
+        checkError("Computer [send data]");
+    }
 }
 void ecl::Computer::send(const std::vector<ArgumentBase*>& args){
     std::size_t count = args.size();
-    for(std::size_t i(0); i < count; i++) send(*args[i]);
+    for(std::size_t i(0); i < count; i++) send(*args[i], false);
     
 	error = clFinish(queue);
     checkError("Computer [send data]");
@@ -1408,36 +1413,46 @@ cl_command_queue ecl::Computer::getQueue() const{
     return queue;
 }
 
-void ecl::Computer::receive(ArgumentBase& arg) {
+void ecl::Computer::receive(ArgumentBase& arg, bool sync) {
 	bool sended = arg.checkBuffer(context);
 	if (!sended) throw std::runtime_error("Computer [receive]: argument wasn't sent to computer");
 	if (arg.getMemoryType() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
 
 	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
 	checkError("Computer [receive data]");
+
+    if(sync){
+        error = clFinish(queue);
+        checkError("Computer [receive data]");
+    }
 }
 void ecl::Computer::receive(const std::vector<ArgumentBase*>& args){
     std::size_t count = args.size();
-	for (std::size_t i(0); i < count; i++) receive(*args[i]);
+	for (std::size_t i(0); i < count; i++) receive(*args[i], false);
 
     error = clFinish(queue);
     checkError("Computer [receive data]");
 }
 
-void ecl::Computer::release(ArgumentBase& arg) {
+void ecl::Computer::release(ArgumentBase& arg, bool sync) {
 	arg.clearBuffer(context);
+
+    if(sync){
+        error = clFinish(queue);
+        checkError("Computer [clear data]");
+    }
 }
 
 void ecl::Computer::release(const std::vector<ArgumentBase*>& args){
-	for (auto* arg : args) release(*arg);
+	for (auto* arg : args) release(*arg, false);
     
     error = clFinish(queue);
     checkError("Computer [clear data]");
 }
 
-void ecl::Computer::grab(ArgumentBase& arg) {
-	receive(arg);
-	release(arg);
+void ecl::Computer::grab(ArgumentBase& arg, bool sync) {
+	receive(arg, sync);
+	release(arg, sync);
 }
 
 void ecl::Computer::grab(const std::vector<ArgumentBase*>& args){
