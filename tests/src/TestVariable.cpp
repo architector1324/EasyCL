@@ -4,7 +4,6 @@
 
 TEST_CASE("Default Constructor") {
 	ecl::Variable<int> variable;
-	//REQUIRE(variable.getValue() == 0); Fails
 	variable.setValue(3);
 	CHECK(variable.getValue() == 3);
 }

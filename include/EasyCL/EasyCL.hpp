@@ -1038,7 +1038,7 @@ void ecl::Variable<T>::clearFields(){
 }
 
 template<typename T>
-ecl::Variable<T>::Variable() : ArgumentBase(&local_value, sizeof(T), READ_WRITE){
+ecl::Variable<T>::Variable() : local_value(), ArgumentBase(&local_value, sizeof(T), READ_WRITE){
 }
 template<typename T>
 ecl::Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T), READ_WRITE){
