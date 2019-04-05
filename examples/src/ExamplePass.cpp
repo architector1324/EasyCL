@@ -11,8 +11,7 @@ void foo(const int* a){
     std::cout << a[2] << std::endl;
 }
 
-int main()
-{
+int main() {
     ecl::Variable<int> a = 5;
 
     int B[] = {1, 2, 3};
