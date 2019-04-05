@@ -1288,7 +1288,7 @@ template<typename T>
 void ecl::Array<T>::setArray(const T* array, std::size_t array_size){
     clearFields();
 
-    this->setDataPtr(array);
+    this->setDataPtr((void*)array);
     this->setDataSize(array_size * sizeof(T));
     this->setMemoryType(READ);
     control = FREE;

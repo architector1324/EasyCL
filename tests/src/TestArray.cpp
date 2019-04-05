@@ -57,14 +57,14 @@ TEST_CASE("Overloaded Constructor 4") {
 	for (std::size_t i = 0; i < 5; i++) {
 		CHECK(array[i] == A[i]);
 	}
-	//SECTION("Set Array to B") { // Fails to compile
-	//	int B[] = { 0, 2, 4, 6, 8 };
-	//	array.setArray(B, 5);
-	//	REQUIRE(array.getArray() != nullptr);
-	//	for (std::size_t i = 0; i < 5; i++) {
-	//		CHECK(array[i] == B[i]);
-	//	}
-	//}
+	SECTION("Set Array to B") {
+		int B[] = { 0, 2, 4, 6, 8 };
+		array.setArray(B, 5);
+		REQUIRE(array.getArray() != nullptr);
+		for (std::size_t i = 0; i < 5; i++) {
+			CHECK(array[i] == B[i]);
+		}
+	}
 }
 
 TEST_CASE("Copy Constructor") {
@@ -90,7 +90,7 @@ TEST_CASE("Move Constructor") {
 	}
 }
 
-TEST_CASE("Copy Assign Operator") { // Fails to compile
+TEST_CASE("Copy Assign Operator"){
 	int A[] = { 0, 1, 2, 3, 4 };
 	ecl::Array<int> array1(A, 5);
 	ecl::Array<int> array2(5);
