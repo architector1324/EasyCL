@@ -2,7 +2,7 @@
 #include <EasyCL/EasyCL.hpp>
 
 int main(){
-    ecl::Program prog = ecl::Program::loadProgram("kernels/SIMD.cl");
+    ecl::Program prog = ecl::Program::load("kernels/SIMD.cl");
     ecl::Kernel kern = "test";
     ecl::Array<int> a(12);
 

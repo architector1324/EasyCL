@@ -90,7 +90,7 @@ namespace ecl{
         Program(Program&&);
         Program& operator=(Program&&);
 
-        static std::string loadProgram(const std::string&);
+        static std::string load(const std::string&);
 
         cl_program getProgram(cl_context) const;
         const std::string& getSource() const;
@@ -725,7 +725,7 @@ ecl::Program& ecl::Program::operator=(Program&& other){
     return *this;
 }
 
-std::string ecl::Program::loadProgram(const std::string& filename){
+std::string ecl::Program::load(const std::string& filename){
     std::ifstream f(filename, std::ios::binary);
     if(!f.is_open()) throw std::runtime_error("wrong program filename");
 

@@ -29,7 +29,7 @@ The library allows you to bypass some of the inconveniences of the original *Ope
 #include "EasyCL.hpp"
 
 int main(){
-    ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
+    ecl::Program prog = ecl::Program::load("kernel.cl");
     ecl::Kernel kern = "test";
     ecl::Variable<int> a = 0;
 
@@ -77,7 +77,7 @@ Output:
 #include "EasyCL.hpp"
 
 int main(){
-    ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
+    ecl::Program prog = ecl::Program::load("kernel.cl");
     ecl::Kernel kern = "test";
     ecl::Array<int> a(12);
 
@@ -129,7 +129,7 @@ struct Vertex{
 };
 
 int main(){
-    ecl::Program prog = ecl::Program::loadProgram("kernel.cl");
+    ecl::Program prog = ecl::Program::load("kernel.cl");
     ecl::Kernel kern = "test";
     ecl::Variable<Vertex> v({0, 0, 0});
 
@@ -519,7 +519,7 @@ ecl::Program myProg = "__kernel void name_of_my_kernel(){...}";
 ```
 Also you can load source program from file:
 ```c++
-static std::string loadProgram(const std::string& filename);
+static std::string load(const std::string& filename);
 ```
 To get / set source:
 ```c++
@@ -583,8 +583,8 @@ void grab(const std::vector<ArgumentBase*>& args);
 
 5. Execute program on Device (SIMD):
 ```c++
-void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size);
-void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<size_t>& global_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);
 ```
 
 #### Threads

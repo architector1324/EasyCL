@@ -6,7 +6,7 @@ struct Vertex{
 };
 
 int main(){
-    ecl::Program prog = ecl::Program::loadProgram("kernels/Struct.cl");
+    ecl::Program prog = ecl::Program::load("kernels/Struct.cl");
     ecl::Kernel kern = "test";
     ecl::Variable<Vertex> v({0, 0, 0});
 
