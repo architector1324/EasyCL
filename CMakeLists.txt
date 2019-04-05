@@ -16,14 +16,12 @@ option(EASYCL_BUILD_EXAMPLES OFF)
 find_package(OpenCL REQUIRED)
 
 ###############################################################################
-# Add Library
+# Add EasyCL Library
 ###############################################################################
 
 add_library(EasyCL INTERFACE)
 add_library(EasyCL::EasyCL ALIAS EasyCL)
-target_include_directories(EasyCL INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	$<INSTALL_INTERFACE:include>)
+target_include_directories(EasyCL INTERFACE include)
 target_link_libraries(EasyCL INTERFACE OpenCL::OpenCL)
 
 ###############################################################################
@@ -32,7 +30,7 @@ target_link_libraries(EasyCL INTERFACE OpenCL::OpenCL)
 
 if(EASYCL_BUILD_TESTS)
 	add_library(Catch2 INTERFACE)
-	target_include_directories(Catch2 INTERFACE ${CMAKE_SOURCE_DIR}/vendor/Catch2/single_include)
+	target_include_directories(Catch2 INTERFACE vendor/Catch2/single_include)
 	enable_testing()
 	macro(easycl_add_test TESTNAME)
 		add_executable(${TESTNAME} ${ARGN})
@@ -41,7 +39,7 @@ if(EASYCL_BUILD_TESTS)
 		add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
 		set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
 	endmacro()
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+	add_subdirectory(tests)
 endif()
 
 ###############################################################################
@@ -54,19 +52,19 @@ if(EASYCL_BUILD_EXAMPLES)
 		target_link_libraries(${EXAMPLENAME} PRIVATE EasyCL::EasyCL)
 		set_target_properties(${EXAMPLENAME} PROPERTIES FOLDER examples)
 	endmacro()
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
+	add_subdirectory(examples)
 endif()
 
 ###############################################################################
-# Install Library
+# Install EasyCL Library
 ###############################################################################
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+install(DIRECTORY include/
         DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
 ###############################################################################
-# CPack
+# Package EasyCL Library
 ###############################################################################
 
 set(CPACK_PACKAGE_ICON "icon.png")
