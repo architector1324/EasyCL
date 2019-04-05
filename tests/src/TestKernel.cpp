@@ -2,10 +2,6 @@
 #include <catch2/catch.hpp>
 #include <EasyCL/EasyCL.hpp>
 
-TEST_CASE("Default Constructor") {
-	// TODO
-}
-
 TEST_CASE("Overloaded Constructor 1") {
 	// TODO
 }
@@ -19,6 +15,14 @@ TEST_CASE("Copy Constructor") {
 }
 
 TEST_CASE("Move Constructor") {
+	// TODO
+}
+
+TEST_CASE("Copy Assignment Operator") {
+	// TODO
+}
+
+TEST_CASE("Move Assignment Operator") {
 	// TODO
 }
 
