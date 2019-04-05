@@ -16,7 +16,7 @@ option(EASYCL_BUILD_EXAMPLES OFF)
 find_package(OpenCL REQUIRED)
 
 ###############################################################################
-# Add Library
+# Add EasyCL Library
 ###############################################################################
 
 add_library(EasyCL INTERFACE)
@@ -30,7 +30,7 @@ target_link_libraries(EasyCL INTERFACE OpenCL::OpenCL)
 
 if(EASYCL_BUILD_TESTS)
 	add_library(Catch2 INTERFACE)
-	target_include_directories(Catch2 INTERFACE ${CMAKE_SOURCE_DIR}/vendor/Catch2/single_include)
+	target_include_directories(Catch2 INTERFACE vendor/Catch2/single_include)
 	enable_testing()
 	macro(easycl_add_test TESTNAME)
 		add_executable(${TESTNAME} ${ARGN})
@@ -56,7 +56,7 @@ if(EASYCL_BUILD_EXAMPLES)
 endif()
 
 ###############################################################################
-# Install Library
+# Install EasyCL Library
 ###############################################################################
 
 install(DIRECTORY include/
@@ -64,7 +64,7 @@ install(DIRECTORY include/
         FILES_MATCHING PATTERN "*.hpp")
 
 ###############################################################################
-# CPack
+# Package EasyCL Library
 ###############################################################################
 
 set(CPACK_PACKAGE_ICON "icon.png")
