@@ -90,17 +90,17 @@ TEST_CASE("Move Constructor") {
 	}
 }
 
-//TEST_CASE("Copy Assign Operator") { // Fails to compile
-//	int A[] = { 0, 1, 2, 3, 4 };
-//	ecl::Array<int> array1(A, 5);
-//	ecl::Array<int> array2(5);
-//	array2 = array1;
-//	REQUIRE(array1.getArray() != nullptr);
-//	REQUIRE(array2.getArray() != nullptr);
-//	for (std::size_t i = 0; i < 5; i++) {
-//		CHECK(array2[i] == array1[i]);
-//	}
-//}
+TEST_CASE("Copy Assign Operator") { // Fails to compile
+	int A[] = { 0, 1, 2, 3, 4 };
+	ecl::Array<int> array1(A, 5);
+	ecl::Array<int> array2(5);
+	array2 = array1;
+	REQUIRE(array1.getArray() != nullptr);
+	REQUIRE(array2.getArray() != nullptr);
+	for (std::size_t i = 0; i < 5; i++) {
+		CHECK(array2[i] == array1[i]);
+	}
+}
 
 TEST_CASE("Move Assignment Operator") {
 	int A[] = { 0, 1, 2, 3, 4 };

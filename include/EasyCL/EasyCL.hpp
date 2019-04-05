@@ -1230,7 +1230,7 @@ ecl::Array<T>::Array(T* array, std::size_t array_size, ACCESS memory_access, CON
 template<typename T>
 ecl::Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_size, other.memory_type){
     control = BIND;
-    std::size_t count = data_size / sizeof(T);
+    std::size_t count = other.data_size / sizeof(T);
     data_ptr = new T[count];
 
     std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
@@ -1240,7 +1240,7 @@ ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
     clearFields();
 
     control = BIND;
-    std::size_t count = data_size / sizeof(T);
+    std::size_t count = other.data_size / sizeof(T);
     data_ptr = new T[count];
 
     std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
