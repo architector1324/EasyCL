@@ -587,6 +587,25 @@ void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const Argu
 void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);
 ```
 
+6. Get device name:
+```c++
+const std::string& getName() const;
+```
+
+
+Also you can get device name with ostreams:
+```c++
+ecl::ostream& << const ecl::Computer&;
+```
+
+Example:
+```c++
+auto plat = ecl::System::getPlatform(0);
+ecl::Computer video(0, p, ecl::DEVICE::GPU);
+
+std::cout << video;
+```
+
 #### Threads
 A thread is an abstraction of a thread on an executable device. After creating a thread, it will be immediately executed on the device, and the data will also be read when synchronizing the thread with the host or when it is destroyed.
 

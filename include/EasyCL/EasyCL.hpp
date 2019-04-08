@@ -36,7 +36,8 @@ namespace ecl{
 ///////////////////////////////////////////////////////////////////////////////
     class Platform : public Error{
     private:
-        cl_platform_id platform;
+        cl_platform_id platform = nullptr;
+        std::string name = "";
 
         std::vector<cl_device_id> cpus;
         std::vector<cl_device_id> gpus;
@@ -49,10 +50,12 @@ namespace ecl{
         Platform(cl_platform_id);
 
         cl_device_id getDevice(std::size_t, DEVICE) const;
+        const std::string& getName() const;
 
         std::string getPlatformInfo(cl_platform_info) const;
         std::string getDeviceInfo(std::size_t, DEVICE, cl_device_info) const;
 
+        friend std::ostream& operator<<(std::ostream&, const Platform&);
         ~Platform();
     };
 
@@ -66,7 +69,7 @@ namespace ecl{
     public:
 		System() = delete;
         static void init();
-        static const Platform* getPlatform(std::size_t);
+        static const Platform& getPlatform(std::size_t);
         static void free();
     };
 
@@ -275,17 +278,19 @@ namespace ecl{
     class Computer : public Error{
         private:
             cl_device_id device = nullptr; // указатель на привязанное устройство
+            std::string name = "";
 
             cl_context context = nullptr; // opencl контекст
             cl_command_queue queue = nullptr; // очередь запросов на привязанное устройство
 
         public:
 			Computer() = delete;
-            Computer(std::size_t, const Platform*, DEVICE);
+            Computer(std::size_t, const Platform&, DEVICE);
 
 			cl_device_id getDevice() const;
 			cl_context getContext() const;
 			cl_command_queue getQueue() const;
+            const std::string& getName() const;
 
 			void send(ArgumentBase&, bool sync = true);
 			void receive(ArgumentBase&, bool sync = true);
@@ -300,6 +305,7 @@ namespace ecl{
             void compute(Program&, Kernel&, const std::vector<const ArgumentBase*>&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
             void compute(Program&, Kernel&, const std::vector<const ArgumentBase*>&, const std::vector<std::size_t>&);
 
+            friend std::ostream& operator<<(std::ostream&, const Computer&);
 			friend Computer& operator<<(Computer&, ArgumentBase&);
 			friend Computer& operator>>(Computer&, ArgumentBase&);
 
@@ -563,6 +569,7 @@ ecl::Platform::Platform(cl_platform_id platform){
     initDevices(cpus, CL_DEVICE_TYPE_CPU);
     initDevices(gpus, CL_DEVICE_TYPE_GPU);
     initDevices(accs, CL_DEVICE_TYPE_ACCELERATOR);
+    name = getPlatformInfo(CL_PLATFORM_NAME);
 }
 
 cl_device_id ecl::Platform::getDevice(std::size_t i, DEVICE type) const{
@@ -583,6 +590,9 @@ cl_device_id ecl::Platform::getDevice(std::size_t i, DEVICE type) const{
     if(i >= count) throw std::runtime_error("invalid device");
 
     return dev[i];
+}
+const std::string& ecl::Platform::getName() const{
+    return name;
 }
 
 std::string ecl::Platform::getPlatformInfo(cl_platform_info info) const{
@@ -636,6 +646,13 @@ std::string ecl::Platform::getDeviceInfo(std::size_t i, DEVICE type, cl_device_i
     return std::to_string(info_src);
 }
 
+namespace ecl{
+    std::ostream& operator<<(std::ostream& s, const Platform& p){
+        s << p.getName();
+        return s;
+    }
+}
+
 ecl::Platform::~Platform(){
     freeDevices(cpus);
     freeDevices(gpus);
@@ -664,9 +681,9 @@ void ecl::System::init(){
     initialized = true;
 }
 
-const ecl::Platform* ecl::System::getPlatform(std::size_t i){
+const ecl::Platform& ecl::System::getPlatform(std::size_t i){
     if(!initialized) init();
-    return platforms.at(i);
+    return *platforms.at(i);
 }
 
 void ecl::System::free(){
@@ -1326,8 +1343,9 @@ ecl::Array<T>::~Array(){
 ///////////////////////////////////////////////////////////////////////////////
 // Computer Class Definition
 ///////////////////////////////////////////////////////////////////////////////
-ecl::Computer::Computer(std::size_t i, const Platform* platform, DEVICE dev){
-    device = platform->getDevice(i, dev);
+ecl::Computer::Computer(std::size_t i, const Platform& platform, DEVICE dev){
+    device = platform.getDevice(i, dev);
+    name = platform.getDeviceInfo(i, dev, CL_DEVICE_NAME);
 
     context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &error);
     checkError("Computer [init]");
@@ -1414,6 +1432,9 @@ cl_context ecl::Computer::getContext() const{
 cl_command_queue ecl::Computer::getQueue() const{
     return queue;
 }
+const std::string& ecl::Computer::getName() const{
+    return name;
+}
 
 void ecl::Computer::receive(ArgumentBase& arg, bool sync) {
 	bool sended = arg.checkBuffer(context);
@@ -1463,6 +1484,11 @@ void ecl::Computer::grab(const std::vector<ArgumentBase*>& args){
 }
 
 namespace ecl {
+    std::ostream& operator<<(std::ostream& s, const Computer& video) {
+		s << video.getName();
+		return s;
+	}
+
 	Computer& operator<<(Computer& video, ArgumentBase& arg) {
 		video.send(arg);
 		return video;
