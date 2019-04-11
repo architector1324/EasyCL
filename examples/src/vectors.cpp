@@ -2,7 +2,7 @@
 #include <EasyCL/EasyCL.hpp>
 
 int main() {
-	ecl::Program prog = ecl::Program::load("kernels/Vectors.cl");
+	ecl::Program prog = ecl::Program::load("kernels/vectors.cl");
 	ecl::Kernel kern = "add";
 	
 	float V1[] = {5.0f, 2.0f, -3.0f, 4.0f};

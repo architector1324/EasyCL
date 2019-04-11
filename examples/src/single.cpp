@@ -2,7 +2,7 @@
 #include <EasyCL/EasyCL.hpp>
 
 int main(){
-    ecl::Program prog = ecl::Program::load("kernels/SingleThread.cl");
+    ecl::Program prog = ecl::Program::load("kernels/single.cl");
     ecl::Kernel kern = "test";
     ecl::Variable<int> a = 0;
 
