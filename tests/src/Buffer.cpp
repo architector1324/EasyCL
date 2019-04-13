@@ -3,10 +3,10 @@
 #include <EasyCL/EasyCL.hpp>
 
 TEST_CASE("Default Constructor") {
-	ecl::ArgumentBase argument_base;
-	REQUIRE(argument_base.getDataPtr() == nullptr);
-	REQUIRE(argument_base.getDataSize() == 0);
-	REQUIRE(argument_base.getMemoryType() == 0);
+	ecl::Buffer buffer(nullptr, 0, ecl::ACCESS::READ);
+	REQUIRE(buffer.getDataPtr() == nullptr);
+	REQUIRE(buffer.getDataSize() == 0);
+	REQUIRE(buffer.getMemoryType() == 0);
 	// TODO
 }
 

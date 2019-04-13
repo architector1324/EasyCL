@@ -179,7 +179,7 @@ Output:
 ## API
 ### Abstractions
 #### Arguments
-It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments that are inherited from `ArgumentBase`:
+It is an abstraction of the arguments of the kernel of a program. Once created, the argument can be used in different kernels and in different OpenCL programs. There are two different types of arguments that are inherited from `Buffer`:
 ##### Variables
 ```c++
 ecl::Variable<T>();
@@ -551,40 +551,40 @@ ecl::Computer video(0, plat, ecl::DEVICE::GPU); // first GPU on this platform
 Methods:
 1. Sending data to Device:
 ```c++
-void send(ArgumentBase& arg);
-void send(const std::vector<ArgumentBase*>& args);
+void send(Buffer& arg);
+void send(const std::vector<Buffer*>& args);
 ```
 Also you can use overloaded operator:
 ```c++
-video << ArgumentBase&;
+video << Buffer&;
 ```
 
 2. Receiving data from Device:
 ```c++
-void receive(ArgumentBase& arg);
-void receive(const std::vector<ArgumentBase*>& args);
+void receive(Buffer& arg);
+void receive(const std::vector<Buffer*>& args);
 ```
 ```c++
-video >> ArgumentBase&;
+video >> Buffer&;
 ```
 
 3. Releasing data in Device:
 ```c++
-void release(ArgumentBase& arg);
-void release(const std::vector<ArgumentBase*>& args);
+void release(Buffer& arg);
+void release(const std::vector<Buffer*>& args);
 ```
 
 4. Grabbing data from Device:
 ```c++
-void grab(ArgumentBase& arg);
-void grab(const std::vector<ArgumentBase*>& args);
+void grab(Buffer& arg);
+void grab(const std::vector<Buffer*>& args);
 ```
 *Note*: it's just receives data from device and release it. 
 
 5. Execute program on Device (SIMD):
 ```c++
-void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<size_t>& global_work_size);
-void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const Buffer*>& args, const std::vector<size_t>& global_work_size);
+void compute(ecl::Program& prog, ecl::Kernel& kern, const std::vector<const Buffer*>& args, const std::vector<size_t>& global_work_size, const std::vector<size_t>& local_work_size);
 ```
 
 6. Get device name:
@@ -611,7 +611,7 @@ A thread is an abstraction of a thread on an executable device. After creating a
 
 Execute program on Device (Single thread):
 ```c++
-ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, const std::vector<ArgumentBase*>& args, ecl::Computer* video);
+ecl::Thread th(ecl::Program& prog, ecl::Kernel& kern, const std::vector<Buffer*>& args, ecl::Computer* video);
 ```
 Sync single threads:
 ```c++

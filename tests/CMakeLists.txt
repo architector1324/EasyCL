@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.7...3.13)
 # Add Tests
 ###############################################################################
 
-easycl_add_test(ArgumentBase src/ArgumentBase.cpp)
+easycl_add_test(Buffer src/Buffer.cpp)
 easycl_add_test(Array src/Array.cpp)
 easycl_add_test(Computer src/Computer.cpp)
 easycl_add_test(Error src/Error.cpp)

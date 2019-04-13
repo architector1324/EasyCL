@@ -159,9 +159,9 @@ namespace ecl{
     };
 
 ///////////////////////////////////////////////////////////////////////////////
-// ArgumentBase Class Declaration
+// Buffer Class Declaration
 ///////////////////////////////////////////////////////////////////////////////
-    class ArgumentBase : public Error{
+    class Buffer : public Error{
     protected:
         std::map<cl_context, cl_mem> buffer; // карта буферов по контексту
         void* data_ptr = nullptr; // указатель на массив данных
@@ -169,12 +169,10 @@ namespace ecl{
         cl_mem_flags memory_type = 0; // тип используемой памяти
 
     public:
-        ArgumentBase();
-        ArgumentBase(const void*, std::size_t);
-        ArgumentBase(void*, std::size_t, cl_mem_flags);
+        Buffer(void*, std::size_t, cl_mem_flags);
 
-        ArgumentBase(ArgumentBase&&);
-        ArgumentBase& operator=(ArgumentBase&&);
+        Buffer(Buffer&&);
+        Buffer& operator=(Buffer&&);
 
         void* getDataPtr();
         std::size_t getDataSize() const;
@@ -191,13 +189,13 @@ namespace ecl{
         void clearBuffer(cl_context);
         virtual void clearFields();
 
-        ~ArgumentBase();
+        ~Buffer();
     };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Variable Class Declaration
 ///////////////////////////////////////////////////////////////////////////////
-    template<typename T> class Variable : public ArgumentBase{
+    template<typename T> class Variable : public Buffer{
         private:
             T local_value;
             CONTROL control = CONTROL::FREE;
@@ -241,7 +239,7 @@ namespace ecl{
 ///////////////////////////////////////////////////////////////////////////////
 // Array Class Declaration
 ///////////////////////////////////////////////////////////////////////////////
-    template<typename T> class Array : public ArgumentBase{
+    template<typename T> class Array : public Buffer{
         private:
             CONTROL control = CONTROL::FREE;
 
@@ -292,22 +290,22 @@ namespace ecl{
 			cl_command_queue getQueue() const;
             const std::string& getName() const;
 
-			void send(ArgumentBase&, bool sync = true);
-			void receive(ArgumentBase&, bool sync = true);
-			void release(ArgumentBase&, bool sync = true);
-			void grab(ArgumentBase&, bool sync = true);
+			void send(Buffer&, bool sync = true);
+			void receive(Buffer&, bool sync = true);
+			void release(Buffer&, bool sync = true);
+			void grab(Buffer&, bool sync = true);
 
-            void send(const std::vector<ArgumentBase*>&);
-			void receive(const std::vector<ArgumentBase*>&);
-			void release(const std::vector<ArgumentBase*>&);
-			void grab(const std::vector<ArgumentBase*>&);
+            void send(const std::vector<Buffer*>&);
+			void receive(const std::vector<Buffer*>&);
+			void release(const std::vector<Buffer*>&);
+			void grab(const std::vector<Buffer*>&);
 
-            void compute(Program&, Kernel&, const std::vector<const ArgumentBase*>&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
-            void compute(Program&, Kernel&, const std::vector<const ArgumentBase*>&, const std::vector<std::size_t>&);
+            void compute(Program&, Kernel&, const std::vector<const Buffer*>&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
+            void compute(Program&, Kernel&, const std::vector<const Buffer*>&, const std::vector<std::size_t>&);
 
             friend std::ostream& operator<<(std::ostream&, const Computer&);
-			friend Computer& operator<<(Computer&, ArgumentBase&);
-			friend Computer& operator>>(Computer&, ArgumentBase&);
+			friend Computer& operator<<(Computer&, Buffer&);
+			friend Computer& operator>>(Computer&, Buffer&);
 
             ~Computer();
     };
@@ -319,12 +317,12 @@ namespace ecl{
         private:
             cl_event sync;
             Computer* video;
-            std::vector<ArgumentBase*> args;
+            std::vector<Buffer*> args;
 
             bool readed = false;
         public:
 			Thread() = delete;
-            Thread(Program&, Kernel&, const std::vector<ArgumentBase*>&, Computer*);
+            Thread(Program&, Kernel&, const std::vector<Buffer*>&, Computer*);
             void join();
             ~Thread();
     };
@@ -945,32 +943,22 @@ ecl::Kernel::~Kernel(){
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// ArgumentBase Class Definition
+// Buffer Class Definition
 ///////////////////////////////////////////////////////////////////////////////
-void ecl::ArgumentBase::clearFields(){
+void ecl::Buffer::clearFields(){
     for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
     data_ptr = nullptr;
     data_size = 0;
     memory_type = 0;
     buffer.clear();
 }
-ecl::ArgumentBase::ArgumentBase() {
-    data_ptr = nullptr;
-    data_size = 0;
-    memory_type = READ_WRITE;
-}
-ecl::ArgumentBase::ArgumentBase(const void* data_ptr, std::size_t data_size){
-    this->data_ptr = (void*)data_ptr;
-    this->data_size = data_size;
-    memory_type = READ;
-}
-ecl::ArgumentBase::ArgumentBase(void* data_ptr, std::size_t data_size, cl_mem_flags memory_type){
+ecl::Buffer::Buffer(void* data_ptr, std::size_t data_size, cl_mem_flags memory_type){
     this->data_ptr = data_ptr;
     this->data_size = data_size;
     this->memory_type = memory_type;
 }
 
-ecl::ArgumentBase::ArgumentBase(ArgumentBase&& other){
+ecl::Buffer::Buffer(Buffer&& other){
     data_size = other.data_size;
     data_ptr = other.data_ptr;
     memory_type = other.memory_type;
@@ -978,7 +966,7 @@ ecl::ArgumentBase::ArgumentBase(ArgumentBase&& other){
 
     other.clearFields();
 }
-ecl::ArgumentBase& ecl::ArgumentBase::operator=(ArgumentBase&& other){
+ecl::Buffer& ecl::Buffer::operator=(Buffer&& other){
     clearFields();
 
     data_size = other.data_size;
@@ -991,57 +979,57 @@ ecl::ArgumentBase& ecl::ArgumentBase::operator=(ArgumentBase&& other){
     return *this;
 }
 
-void* ecl::ArgumentBase::getDataPtr(){
+void* ecl::Buffer::getDataPtr(){
     return data_ptr;
 }
-std::size_t ecl::ArgumentBase::getDataSize() const{
+std::size_t ecl::Buffer::getDataSize() const{
     return data_size;
 }
-cl_mem_flags ecl::ArgumentBase::getMemoryType() const{
+cl_mem_flags ecl::Buffer::getMemoryType() const{
     return memory_type;
 }
-cl_mem ecl::ArgumentBase::getBuffer(cl_context context) const{
+cl_mem ecl::Buffer::getBuffer(cl_context context) const{
     return buffer.at(context);
 }
 
-bool ecl::ArgumentBase::checkBuffer(cl_context context) const{
+bool ecl::Buffer::checkBuffer(cl_context context) const{
     if(buffer.find(context) == buffer.end()) return false;
     return true;
 }
-void ecl::ArgumentBase::createBuffer(cl_context context){
+void ecl::Buffer::createBuffer(cl_context context){
     if(!checkBuffer(context)){
         buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
-        checkError("ArgumentBase [check]");
+        checkError("Buffer [check]");
     }
 }
 
-void ecl::ArgumentBase::setDataPtr(void* data_ptr){
+void ecl::Buffer::setDataPtr(void* data_ptr){
     this->data_ptr = data_ptr;
 }
-void ecl::ArgumentBase::setDataSize(std::size_t data_size){
+void ecl::Buffer::setDataSize(std::size_t data_size){
     if(buffer.size() == 0){
         this->data_size = data_size;
     }
     else throw std::runtime_error("unable to change array size until it's using");
 }
-void ecl::ArgumentBase::setMemoryType(cl_mem_flags memory_type){
+void ecl::Buffer::setMemoryType(cl_mem_flags memory_type){
     if(buffer.size() == 0){
         this->memory_type = memory_type;
     }
     else throw std::runtime_error("unable to change array memory type until it's using");
 }
 
-void ecl::ArgumentBase::clearBuffer(cl_context context){
+void ecl::Buffer::clearBuffer(cl_context context){
     auto it = buffer.find(context);
     if(it != buffer.end()){
         error = clReleaseMemObject(buffer.at(context));
         buffer.erase(it);
 
-        checkError("ArgumentBase [clear]");
+        checkError("Buffer [clear]");
     }
 }
 
-ecl::ArgumentBase::~ArgumentBase(){
+ecl::Buffer::~Buffer(){
     clearFields();
 }
 
@@ -1050,29 +1038,29 @@ ecl::ArgumentBase::~ArgumentBase(){
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
 void ecl::Variable<T>::clearFields(){
-    ArgumentBase::clearFields();
+    Buffer::clearFields();
     local_value.~T();
 }
 
 template<typename T>
-ecl::Variable<T>::Variable() : local_value(), ArgumentBase(&local_value, sizeof(T), READ_WRITE){
+ecl::Variable<T>::Variable() : local_value(), Buffer(&local_value, sizeof(T), READ_WRITE){
 }
 template<typename T>
-ecl::Variable<T>::Variable(const T& value) : ArgumentBase(&local_value, sizeof(T), READ_WRITE){
+ecl::Variable<T>::Variable(const T& value) : Buffer(&local_value, sizeof(T), READ_WRITE){
     local_value = value;
 }
 
 template<typename T>
-ecl::Variable<T>::Variable(ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
+ecl::Variable<T>::Variable(ACCESS memory_access) : Buffer(&local_value, sizeof(T), memory_access){
 }
 
 template<typename T>
-ecl::Variable<T>::Variable(const T& value, ACCESS memory_access) : ArgumentBase(&local_value, sizeof(T), memory_access){
+ecl::Variable<T>::Variable(const T& value, ACCESS memory_access) : Buffer(&local_value, sizeof(T), memory_access){
     local_value = value;
 }
 
 template<typename T>
-ecl::Variable<T>::Variable(const Variable<T>& other) : ArgumentBase(&local_value, other.data_size, other.memory_type){
+ecl::Variable<T>::Variable(const Variable<T>& other) : Buffer(&local_value, other.data_size, other.memory_type){
     local_value = other.local_value;
 }
 template<typename T>
@@ -1088,7 +1076,7 @@ ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
 }
 
 template<typename T>
-ecl::Variable<T>::Variable(Variable<T>&& other) : ArgumentBase(std::move(other)){
+ecl::Variable<T>::Variable(Variable<T>&& other) : Buffer(std::move(other)){
     local_value = other.local_value;
     data_ptr = &local_value;
 
@@ -1210,7 +1198,7 @@ ecl::Variable<T>::~Variable(){
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
 void ecl::Array<T>::clearFields(){
-    ArgumentBase::clearFields();
+    Buffer::clearFields();
     if(control == BIND){
         delete[] static_cast<T*>(data_ptr);
         data_ptr = nullptr;
@@ -1218,34 +1206,34 @@ void ecl::Array<T>::clearFields(){
 }
 
 template<typename T>
-ecl::Array<T>::Array() : ArgumentBase(){
+ecl::Array<T>::Array() : Buffer(nullptr, 0, READ){
 }
 
 template<typename T>
-ecl::Array<T>::Array(std::size_t array_size) : ArgumentBase(nullptr, array_size * sizeof(T), READ_WRITE){
+ecl::Array<T>::Array(std::size_t array_size) : Buffer(nullptr, array_size * sizeof(T), READ_WRITE){
     this->control = BIND;
     T* temp = new T[array_size];
     data_ptr = temp;
 }
 template<typename T>
-ecl::Array<T>::Array(std::size_t array_size, ACCESS memory_access) : ArgumentBase(nullptr, array_size * sizeof(T), memory_access){
+ecl::Array<T>::Array(std::size_t array_size, ACCESS memory_access) : Buffer(nullptr, array_size * sizeof(T), memory_access){
     this->control = BIND;
     T* temp = new T[array_size];
     data_ptr = temp;
 }
 
 template<typename T>
-ecl::Array<T>::Array(const T* array, std::size_t array_size, CONTROL control) : ArgumentBase(static_cast<const void*>(array), array_size * sizeof(T)){
+ecl::Array<T>::Array(const T* array, std::size_t array_size, CONTROL control) : Buffer((void*)array, array_size * sizeof(T), READ){
     this->control = control;
 }
 
 template<typename T>
-ecl::Array<T>::Array(T* array, std::size_t array_size, ACCESS memory_access, CONTROL control) : ArgumentBase(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
+ecl::Array<T>::Array(T* array, std::size_t array_size, ACCESS memory_access, CONTROL control) : Buffer(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
     this->control = control;
 }
 
 template<typename T>
-ecl::Array<T>::Array(const Array<T>& other) : ArgumentBase(nullptr, other.data_size, other.memory_type){
+ecl::Array<T>::Array(const Array<T>& other) : Buffer(nullptr, other.data_size, other.memory_type){
     control = BIND;
     std::size_t count = other.data_size / sizeof(T);
     data_ptr = new T[count];
@@ -1269,7 +1257,7 @@ ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
 }
 
 template<typename T>
-ecl::Array<T>::Array(Array<T>&& other) : ArgumentBase(std::move(other)){
+ecl::Array<T>::Array(Array<T>&& other) : Buffer(std::move(other)){
     control = other.control;
     other.control = FREE;
 
@@ -1355,7 +1343,7 @@ ecl::Computer::Computer(std::size_t i, const Platform& platform, DEVICE dev){
 }
 
 
-void ecl::Computer::send(ecl::ArgumentBase& arg, bool sync) {
+void ecl::Computer::send(ecl::Buffer& arg, bool sync) {
 	arg.createBuffer(context);
 
 	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
@@ -1366,7 +1354,7 @@ void ecl::Computer::send(ecl::ArgumentBase& arg, bool sync) {
         checkError("Computer [send data]");
     }
 }
-void ecl::Computer::send(const std::vector<ArgumentBase*>& args){
+void ecl::Computer::send(const std::vector<Buffer*>& args){
     std::size_t count = args.size();
     for(std::size_t i(0); i < count; i++) send(*args[i], false);
     
@@ -1374,7 +1362,7 @@ void ecl::Computer::send(const std::vector<ArgumentBase*>& args){
     checkError("Computer [send data]");
 }
 
-void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
+void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const Buffer*>& args, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
     prog.checkProgram(context, device);
     cl_program prog_program = prog.getProgram(context);
     
@@ -1383,9 +1371,9 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const
 
     std::size_t count = args.size();
     for (std::size_t i(0); i < count; i++) {
-        const ArgumentBase* curr = args.at(i);
+        const Buffer* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+        if(!sended) throw std::runtime_error("Computer [compute]: buffer wasn't sent to computer");
 
         cl_mem buf = curr->getBuffer(context);
         error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
@@ -1398,7 +1386,7 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const
     error = clFinish(queue);
     checkError("Computer [compute]");
 }
-void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const ArgumentBase*>& args, const std::vector<std::size_t>& global_work_size){
+void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const Buffer*>& args, const std::vector<std::size_t>& global_work_size){
     prog.checkProgram(context, device);
     cl_program prog_program = prog.getProgram(context);
     
@@ -1407,9 +1395,9 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const
 
     std::size_t count = args.size();
     for (std::size_t i(0); i < count; i++) {
-        const ArgumentBase* curr = args.at(i);
+        const Buffer* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+        if(!sended) throw std::runtime_error("Computer [compute]: buffer wasn't sent to computer");
 
         cl_mem buf = curr->getBuffer(context);
         error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
@@ -1436,9 +1424,9 @@ const std::string& ecl::Computer::getName() const{
     return name;
 }
 
-void ecl::Computer::receive(ArgumentBase& arg, bool sync) {
+void ecl::Computer::receive(Buffer& arg, bool sync) {
 	bool sended = arg.checkBuffer(context);
-	if (!sended) throw std::runtime_error("Computer [receive]: argument wasn't sent to computer");
+	if (!sended) throw std::runtime_error("Computer [receive]: buffer wasn't sent to computer");
 	if (arg.getMemoryType() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
 
 	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
@@ -1449,7 +1437,7 @@ void ecl::Computer::receive(ArgumentBase& arg, bool sync) {
         checkError("Computer [receive data]");
     }
 }
-void ecl::Computer::receive(const std::vector<ArgumentBase*>& args){
+void ecl::Computer::receive(const std::vector<Buffer*>& args){
     std::size_t count = args.size();
 	for (std::size_t i(0); i < count; i++) receive(*args[i], false);
 
@@ -1457,7 +1445,7 @@ void ecl::Computer::receive(const std::vector<ArgumentBase*>& args){
     checkError("Computer [receive data]");
 }
 
-void ecl::Computer::release(ArgumentBase& arg, bool sync) {
+void ecl::Computer::release(Buffer& arg, bool sync) {
 	arg.clearBuffer(context);
 
     if(sync){
@@ -1466,19 +1454,19 @@ void ecl::Computer::release(ArgumentBase& arg, bool sync) {
     }
 }
 
-void ecl::Computer::release(const std::vector<ArgumentBase*>& args){
+void ecl::Computer::release(const std::vector<Buffer*>& args){
 	for (auto* arg : args) release(*arg, false);
     
     error = clFinish(queue);
     checkError("Computer [clear data]");
 }
 
-void ecl::Computer::grab(ArgumentBase& arg, bool sync) {
+void ecl::Computer::grab(Buffer& arg, bool sync) {
 	receive(arg, sync);
 	release(arg, sync);
 }
 
-void ecl::Computer::grab(const std::vector<ArgumentBase*>& args){
+void ecl::Computer::grab(const std::vector<Buffer*>& args){
     receive(args);
     release(args);
 }
@@ -1489,12 +1477,12 @@ namespace ecl {
 		return s;
 	}
 
-	Computer& operator<<(Computer& video, ArgumentBase& arg) {
+	Computer& operator<<(Computer& video, Buffer& arg) {
 		video.send(arg);
 		return video;
 	}
 
-	Computer& operator>>(Computer& video, ArgumentBase& arg) {
+	Computer& operator>>(Computer& video, Buffer& arg) {
 		video.receive(arg);
 		return video;
 	}
@@ -1510,7 +1498,7 @@ ecl::Computer::~Computer(){
 ///////////////////////////////////////////////////////////////////////////////
 // Thread Class Definition
 ///////////////////////////////////////////////////////////////////////////////
-ecl::Thread::Thread(Program& prog, Kernel& kern, const std::vector<ArgumentBase*>& args, Computer* video){
+ecl::Thread::Thread(Program& prog, Kernel& kern, const std::vector<Buffer*>& args, Computer* video){
     this->video = video;
     this->args = args;
 
@@ -1526,9 +1514,9 @@ ecl::Thread::Thread(Program& prog, Kernel& kern, const std::vector<ArgumentBase*
 
     std::size_t count = args.size();
     for (std::size_t i(0); i < count; i++) {
-        ArgumentBase* curr = args.at(i);
+        Buffer* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("argument wasn't sent to computer");
+        if(!sended) throw std::runtime_error("Thread [create]: buffer wasn't sent to computer");
 
         cl_mem buf = curr->getBuffer(context);
         error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
