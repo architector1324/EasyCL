@@ -18,6 +18,7 @@ namespace ecl{
     enum ACCESS{READ = CL_MEM_READ_ONLY, WRITE = CL_MEM_WRITE_ONLY, READ_WRITE = CL_MEM_READ_WRITE};
     enum DEVICE{CPU = CL_DEVICE_TYPE_CPU, GPU = CL_DEVICE_TYPE_GPU, ACCEL = CL_DEVICE_TYPE_ACCELERATOR};
     enum FREE{AUTO, MANUALLY};
+    enum EXEC {SYNC, ASYNC};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Error Class Declaration
@@ -306,9 +307,11 @@ namespace ecl{
 			void release(const std::vector<Buffer*>&);
 			void grab(const std::vector<Buffer*>&);
 
-            void grid(const Frame&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
-            void grid(const Frame&, const std::vector<std::size_t>&);
-            void task(const Frame&);
+            void grid(const Frame&, const std::vector<std::size_t>&, const std::vector<std::size_t>&, EXEC sync = SYNC);
+            void grid(const Frame&, const std::vector<std::size_t>&, EXEC sync = SYNC);
+            void task(const Frame&, EXEC sync = SYNC);
+
+            void await();
 
             friend std::ostream& operator<<(std::ostream&, const Computer&);
 			friend Computer& operator<<(Computer&, Buffer&);
@@ -1350,7 +1353,7 @@ void ecl::Computer::send(const std::vector<Buffer*>& args){
     checkError("Computer [send data]");
 }
 
-void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
+void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size, EXEC sync){
     auto& prog = frame.prog;
     auto& kern = frame.kern;
     const auto& args = frame.args;
@@ -1375,10 +1378,9 @@ void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& glo
     error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
     checkError("Computer [grid]");
     
-    error = clFinish(queue);
-    checkError("Computer [grid]");
+    if(sync == SYNC) await();
 }
-void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size){
+void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size, EXEC sync){
     auto& prog = frame.prog;
     auto& kern = frame.kern;
     const auto& args = frame.args;
@@ -1403,10 +1405,9 @@ void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& glo
     error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
     checkError("Computer [grid]");
     
-    error = clFinish(queue);
-    checkError("Computer [grid]");
+    if(sync == SYNC) await();
 }
-void ecl::Computer::task(const Frame& frame){
+void ecl::Computer::task(const Frame& frame, EXEC sync){
     auto& prog = frame.prog;
     auto& kern = frame.kern;
     const auto& args = frame.args;
@@ -1431,8 +1432,12 @@ void ecl::Computer::task(const Frame& frame){
     error = clEnqueueTask(queue, kern_kernel, 0, nullptr, nullptr);
     checkError("Computer [task]");
 
+    if(sync == SYNC) await();
+}
+
+void ecl::Computer::await(){
     error = clFinish(queue);
-    checkError("Computer [task]");
+    checkError("Computer [await]");
 }
 
 cl_device_id ecl::Computer::getDevice() const{
