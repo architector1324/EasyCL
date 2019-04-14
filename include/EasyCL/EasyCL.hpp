@@ -17,7 +17,7 @@ namespace ecl{
 
     enum ACCESS{READ = CL_MEM_READ_ONLY, WRITE = CL_MEM_WRITE_ONLY, READ_WRITE = CL_MEM_READ_WRITE};
     enum DEVICE{CPU = CL_DEVICE_TYPE_CPU, GPU = CL_DEVICE_TYPE_GPU, ACCEL = CL_DEVICE_TYPE_ACCELERATOR};
-    enum FREE{AUTO, MANUALY};
+    enum FREE{AUTO, MANUALLY};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Error Class Declaration
@@ -185,12 +185,12 @@ namespace ecl{
 
         bool checkBuffer(cl_context) const;
         void createBuffer(cl_context);
+        void releaseBuffer(cl_context);
 
         void setDataPtr(void*);
         void setDataSize(std::size_t);
         void setAccess(ACCESS);
 
-        void clearBuffer(cl_context);
         virtual void clearFields();
 
         ~Buffer();
@@ -242,13 +242,13 @@ namespace ecl{
 ///////////////////////////////////////////////////////////////////////////////
     template<typename T> class Array : public Buffer{
         private:
-            FREE manage = FREE::MANUALY;
+            FREE manage = FREE::MANUALLY;
             std::size_t size;
         public:
             Array();
             Array(std::size_t, ACCESS access = READ_WRITE);
-            Array(const T*, std::size_t, FREE manage = MANUALY);
-            Array(T*, std::size_t, ACCESS, FREE manage = MANUALY);
+            Array(const T*, std::size_t, FREE manage = MANUALLY);
+            Array(T*, std::size_t, ACCESS, FREE manage = MANUALLY);
 
             Array(const Array<T>&);
             Array<T>& operator=(const Array<T>&);
@@ -314,23 +314,6 @@ namespace ecl{
 			friend Computer& operator>>(Computer&, Buffer&);
 
             ~Computer();
-    };
-
-///////////////////////////////////////////////////////////////////////////////
-// Thread Class Declaration
-///////////////////////////////////////////////////////////////////////////////
-    class Thread : public Error{
-        private:
-            cl_event sync;
-            Computer* video;
-            std::vector<Buffer*> args;
-
-            bool readed = false;
-        public:
-			Thread() = delete;
-            Thread(Program&, Kernel&, const std::vector<Buffer*>&, Computer*);
-            void join();
-            ~Thread();
     };
 }
 
@@ -952,7 +935,7 @@ ecl::Kernel::~Kernel(){
 // Buffer Class Definition
 ///////////////////////////////////////////////////////////////////////////////
 void ecl::Buffer::clearFields(){
-    for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
+    for(const std::pair<cl_context, cl_mem>& p : buffer) releaseBuffer(p.first);
     if(!ref) delete[] static_cast<uint8_t*>(data_ptr);
 
     data_ptr = nullptr;
@@ -1050,7 +1033,7 @@ void ecl::Buffer::setAccess(ACCESS access){
     else throw std::runtime_error("unable to change array memory type until it's using");
 }
 
-void ecl::Buffer::clearBuffer(cl_context context){
+void ecl::Buffer::releaseBuffer(cl_context context){
     auto it = buffer.find(context);
     if(it != buffer.end()){
         error = clReleaseMemObject(buffer.at(context));
@@ -1277,7 +1260,7 @@ template<typename T>
 ecl::Array<T>::Array(Array<T>&& other) : Buffer(std::move(other)){
     manage = other.manage;
     size = other.size;
-    other.manage = MANUALY;
+    other.manage = MANUALLY;
 
     other.clearFields();
 }
@@ -1292,7 +1275,7 @@ ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
     manage = other.manage;
     size = other.size;
 
-    other.manage = MANUALY;
+    other.manage = MANUALLY;
 
     other.clearFields();
     return *this;
@@ -1458,7 +1441,7 @@ void ecl::Computer::receive(const std::vector<Buffer*>& args){
 }
 
 void ecl::Computer::release(Buffer& arg, bool sync) {
-	arg.clearBuffer(context);
+	arg.releaseBuffer(context);
 
     if(sync){
         error = clFinish(queue);
@@ -1505,48 +1488,4 @@ ecl::Computer::~Computer(){
     checkError("Computer [free]");
     error = clReleaseContext(context);
     checkError("Computer [free]");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Thread Class Definition
-///////////////////////////////////////////////////////////////////////////////
-ecl::Thread::Thread(Program& prog, Kernel& kern, const std::vector<Buffer*>& args, Computer* video){
-    this->video = video;
-    this->args = args;
-
-    cl_context context = video->getContext();
-    cl_device_id device = video->getDevice();
-    cl_command_queue queue = video->getQueue();
-
-    prog.checkProgram(context, device);
-    cl_program prog_program = prog.getProgram(context);
-    
-    kern.checkKernel(prog_program);
-    cl_kernel kern_kernel = kern.getKernel(prog_program);
-
-    std::size_t count = args.size();
-    for (std::size_t i(0); i < count; i++) {
-        Buffer* curr = args.at(i);
-        bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("Thread [create]: buffer wasn't sent to computer");
-
-        cl_mem buf = curr->getBuffer(context);
-        error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
-        checkError("Thread [compute]");
-    }
-
-    error = clEnqueueTask(queue, kern_kernel, 0, nullptr, &sync);
-    checkError("Thread [compute]");
-}
-void ecl::Thread::join(){
-    error = clWaitForEvents(1, &sync);
-    checkError("Thread [join]");
-
-    video->receive(args);
-    readed = true;
-}
-ecl::Thread::~Thread(){
-    clReleaseEvent(sync);
-    checkError("Thread [free]");
-    if(!readed) video->receive(args);
 }
