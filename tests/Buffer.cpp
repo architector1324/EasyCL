@@ -2,19 +2,19 @@
 #include <catch2/catch.hpp>
 #include <EasyCL/EasyCL.hpp>
 
-TEST_CASE("Default Constructor") {
+TEST_CASE("Constructor") {
 	ecl::Buffer buffer(nullptr, 0, ecl::ACCESS::READ);
 	REQUIRE(buffer.getDataPtr() == nullptr);
 	REQUIRE(buffer.getDataSize() == 0);
-	REQUIRE(buffer.getMemoryType() == 0);
+	REQUIRE(buffer.getAccess() == ecl::ACCESS::READ);
 	// TODO
 }
 
-TEST_CASE("Overloaded Constructor 1") {
+TEST_CASE("Copy Constructor") {
 	// TODO
 }
 
-TEST_CASE("Overloaded Constructor 2") {
+TEST_CASE("Copy Assignment Operator") {
 	// TODO
 }
 

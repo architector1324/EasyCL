@@ -17,7 +17,7 @@ namespace ecl{
 
     enum ACCESS{READ = CL_MEM_READ_ONLY, WRITE = CL_MEM_WRITE_ONLY, READ_WRITE = CL_MEM_READ_WRITE};
     enum DEVICE{CPU = CL_DEVICE_TYPE_CPU, GPU = CL_DEVICE_TYPE_GPU, ACCEL = CL_DEVICE_TYPE_ACCELERATOR};
-    enum CONTROL{BIND, FREE};
+    enum FREE{AUTO, MANUALY};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Error Class Declaration
@@ -44,7 +44,7 @@ namespace ecl{
         std::vector<cl_device_id> accs;
 
         void initDevices(std::vector<cl_device_id>&, cl_device_type);
-        void freeDevices(std::vector<cl_device_id>&);
+        void releaseDevices(std::vector<cl_device_id>&);
     public:
         Platform() = default;
         Platform(cl_platform_id);
@@ -70,7 +70,7 @@ namespace ecl{
 		System() = delete;
         static void init();
         static const Platform& getPlatform(std::size_t);
-        static void free();
+        static void release();
     };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ namespace ecl{
         Program(Program&&);
         Program& operator=(Program&&);
 
-        static std::string load(const std::string&);
+        static Program load(const std::string&);
 
         cl_program getProgram(cl_context) const;
         const std::string& getSource() const;
@@ -151,8 +151,8 @@ namespace ecl{
         void setName(const std::string&);
         const std::string& getName() const;
 
-        cl_kernel getKernel(cl_program) const; // получить указатель на ядро
-        bool checkKernel(cl_program); // проверить ядро на прграмму
+        cl_kernel getKernel(cl_program) const;
+        bool checkKernel(cl_program);
 
         void clearFields();
         ~Kernel();
@@ -163,20 +163,24 @@ namespace ecl{
 ///////////////////////////////////////////////////////////////////////////////
     class Buffer : public Error{
     protected:
-        std::map<cl_context, cl_mem> buffer; // карта буферов по контексту
-        void* data_ptr = nullptr; // указатель на массив данных
-        std::size_t data_size = 0; // размер массива данных
-        cl_mem_flags memory_type = 0; // тип используемой памяти
+        std::map<cl_context, cl_mem> buffer; // buffers map by context
+        void* data_ptr = nullptr; // pointer to data
+        std::size_t data_size = 0; // sizeof data
+        ACCESS access = READ; // memory access
 
+        bool ref = true;
     public:
-        Buffer(void*, std::size_t, cl_mem_flags);
+        Buffer(void*, std::size_t, ACCESS);
+
+        Buffer(const Buffer&);
+        Buffer& operator=(const Buffer&);
 
         Buffer(Buffer&&);
         Buffer& operator=(Buffer&&);
 
         void* getDataPtr();
         std::size_t getDataSize() const;
-        cl_mem_flags getMemoryType() const;
+        ACCESS getAccess() const;
         cl_mem getBuffer(cl_context) const;
 
         bool checkBuffer(cl_context) const;
@@ -184,7 +188,7 @@ namespace ecl{
 
         void setDataPtr(void*);
         void setDataSize(std::size_t);
-        void setMemoryType(cl_mem_flags);
+        void setAccess(ACCESS);
 
         void clearBuffer(cl_context);
         virtual void clearFields();
@@ -198,13 +202,10 @@ namespace ecl{
     template<typename T> class Variable : public Buffer{
         private:
             T local_value;
-            CONTROL control = CONTROL::FREE;
 
         public:
             Variable();
-            Variable(const T&);
-            Variable(ACCESS);
-            Variable(const T&, ACCESS);
+            Variable(const T&, ACCESS access = READ_WRITE);
 
             Variable(const Variable<T>&);
             Variable<T>& operator=(const Variable<T>&);
@@ -241,14 +242,13 @@ namespace ecl{
 ///////////////////////////////////////////////////////////////////////////////
     template<typename T> class Array : public Buffer{
         private:
-            CONTROL control = CONTROL::FREE;
-
+            FREE manage = FREE::MANUALY;
+            std::size_t size;
         public:
             Array();
-            Array(std::size_t);
-            Array(std::size_t, ACCESS);
-            Array(const T*, std::size_t, CONTROL control = FREE);
-            Array(T*, std::size_t, ACCESS, CONTROL control = FREE);
+            Array(std::size_t, ACCESS access = READ_WRITE);
+            Array(const T*, std::size_t, FREE manage = MANUALY);
+            Array(T*, std::size_t, ACCESS, FREE manage = MANUALY);
 
             Array(const Array<T>&);
             Array<T>& operator=(const Array<T>&);
@@ -256,30 +256,36 @@ namespace ecl{
             Array(Array<T>&&);
             Array<T>& operator=(Array<T>&&);
 
-            const T* getConstArray() const;
             T* getArray();
+            std::size_t getSize() const;
+            const T* getConstArray() const;
 
             T& operator[](std::size_t i);
             operator T*();
             operator const T*() const;
-
-            void setArray(const T*, std::size_t);
-            void setArray(T*, std::size_t, ACCESS);
 
             void clearFields() override;
             ~Array();
     };
 
 ///////////////////////////////////////////////////////////////////////////////
+// Frame Struct Declaration
+///////////////////////////////////////////////////////////////////////////////
+    struct Frame{
+        Program& prog;
+        Kernel& kern;
+        const std::vector<const Buffer*>& args;
+    };
+///////////////////////////////////////////////////////////////////////////////
 // Computer Class Declaration
 ///////////////////////////////////////////////////////////////////////////////
     class Computer : public Error{
         private:
-            cl_device_id device = nullptr; // указатель на привязанное устройство
+            cl_device_id device = nullptr;
             std::string name = "";
 
-            cl_context context = nullptr; // opencl контекст
-            cl_command_queue queue = nullptr; // очередь запросов на привязанное устройство
+            cl_context context = nullptr;
+            cl_command_queue queue = nullptr;
 
         public:
 			Computer() = delete;
@@ -300,8 +306,8 @@ namespace ecl{
 			void release(const std::vector<Buffer*>&);
 			void grab(const std::vector<Buffer*>&);
 
-            void compute(Program&, Kernel&, const std::vector<const Buffer*>&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
-            void compute(Program&, Kernel&, const std::vector<const Buffer*>&, const std::vector<std::size_t>&);
+            void grid(const Frame&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
+            void grid(const Frame&, const std::vector<std::size_t>&);
 
             friend std::ostream& operator<<(std::ostream&, const Computer&);
 			friend Computer& operator<<(Computer&, Buffer&);
@@ -555,7 +561,7 @@ void ecl::Platform::initDevices(std::vector<cl_device_id>& devs, cl_device_type 
     }
 }
 
-void ecl::Platform::freeDevices(std::vector<cl_device_id>& devs){
+void ecl::Platform::releaseDevices(std::vector<cl_device_id>& devs){
     for(auto& d : devs){
         error = clReleaseDevice(d);
         checkError("Platform [free]");
@@ -652,9 +658,9 @@ namespace ecl{
 }
 
 ecl::Platform::~Platform(){
-    freeDevices(cpus);
-    freeDevices(gpus);
-    freeDevices(accs);
+    releaseDevices(cpus);
+    releaseDevices(gpus);
+    releaseDevices(accs);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -684,7 +690,7 @@ const ecl::Platform& ecl::System::getPlatform(std::size_t i){
     return *platforms.at(i);
 }
 
-void ecl::System::free(){
+void ecl::System::release(){
     for(auto* p : platforms) delete p;
 }
 
@@ -740,7 +746,7 @@ ecl::Program& ecl::Program::operator=(Program&& other){
     return *this;
 }
 
-std::string ecl::Program::load(const std::string& filename){
+ecl::Program ecl::Program::load(const std::string& filename){
     std::ifstream f(filename, std::ios::binary);
     if(!f.is_open()) throw std::runtime_error("wrong program filename");
 
@@ -947,21 +953,46 @@ ecl::Kernel::~Kernel(){
 ///////////////////////////////////////////////////////////////////////////////
 void ecl::Buffer::clearFields(){
     for(const std::pair<cl_context, cl_mem>& p : buffer) clearBuffer(p.first);
+    if(!ref) delete[] static_cast<uint8_t*>(data_ptr);
+
     data_ptr = nullptr;
     data_size = 0;
-    memory_type = 0;
+    access = READ;
     buffer.clear();
 }
-ecl::Buffer::Buffer(void* data_ptr, std::size_t data_size, cl_mem_flags memory_type){
+ecl::Buffer::Buffer(void* data_ptr, std::size_t data_size, ACCESS access){
     this->data_ptr = data_ptr;
     this->data_size = data_size;
-    this->memory_type = memory_type;
+    this->access = access;
+}
+
+ecl::Buffer::Buffer(const Buffer& other){
+    clearFields();
+
+    data_size = other.data_size;
+    access = other.access;
+    data_ptr = new uint8_t[data_size];
+
+    memcpy(data_ptr, other.data_ptr, data_size);
+    ref = false;
+}
+ecl::Buffer& ecl::Buffer::operator=(const Buffer& other){
+    clearFields();
+
+    data_size = other.data_size;
+    access = other.access;
+    data_ptr = new uint8_t[data_size];
+
+    memcpy(data_ptr, other.data_ptr, data_size);
+    ref = false;
+
+    return *this;
 }
 
 ecl::Buffer::Buffer(Buffer&& other){
     data_size = other.data_size;
     data_ptr = other.data_ptr;
-    memory_type = other.memory_type;
+    access = other.access;
     buffer = std::move(other.buffer);
 
     other.clearFields();
@@ -971,7 +1002,7 @@ ecl::Buffer& ecl::Buffer::operator=(Buffer&& other){
 
     data_size = other.data_size;
     data_ptr = other.data_ptr;
-    memory_type = other.memory_type;
+    access = other.access;
     buffer = std::move(other.buffer);
 
     other.clearFields();
@@ -985,8 +1016,8 @@ void* ecl::Buffer::getDataPtr(){
 std::size_t ecl::Buffer::getDataSize() const{
     return data_size;
 }
-cl_mem_flags ecl::Buffer::getMemoryType() const{
-    return memory_type;
+ecl::ACCESS ecl::Buffer::getAccess() const{
+    return access;
 }
 cl_mem ecl::Buffer::getBuffer(cl_context context) const{
     return buffer.at(context);
@@ -998,7 +1029,7 @@ bool ecl::Buffer::checkBuffer(cl_context context) const{
 }
 void ecl::Buffer::createBuffer(cl_context context){
     if(!checkBuffer(context)){
-        buffer.emplace(context, clCreateBuffer(context, memory_type, data_size, nullptr, &error));
+        buffer.emplace(context, clCreateBuffer(context, access, data_size, nullptr, &error));
         checkError("Buffer [check]");
     }
 }
@@ -1012,9 +1043,9 @@ void ecl::Buffer::setDataSize(std::size_t data_size){
     }
     else throw std::runtime_error("unable to change array size until it's using");
 }
-void ecl::Buffer::setMemoryType(cl_mem_flags memory_type){
+void ecl::Buffer::setAccess(ACCESS access){
     if(buffer.size() == 0){
-        this->memory_type = memory_type;
+        this->access = access;
     }
     else throw std::runtime_error("unable to change array memory type until it's using");
 }
@@ -1046,21 +1077,12 @@ template<typename T>
 ecl::Variable<T>::Variable() : local_value(), Buffer(&local_value, sizeof(T), READ_WRITE){
 }
 template<typename T>
-ecl::Variable<T>::Variable(const T& value) : Buffer(&local_value, sizeof(T), READ_WRITE){
+ecl::Variable<T>::Variable(const T& value, ACCESS access) : Buffer(&local_value, sizeof(T), access){
     local_value = value;
 }
 
 template<typename T>
-ecl::Variable<T>::Variable(ACCESS memory_access) : Buffer(&local_value, sizeof(T), memory_access){
-}
-
-template<typename T>
-ecl::Variable<T>::Variable(const T& value, ACCESS memory_access) : Buffer(&local_value, sizeof(T), memory_access){
-    local_value = value;
-}
-
-template<typename T>
-ecl::Variable<T>::Variable(const Variable<T>& other) : Buffer(&local_value, other.data_size, other.memory_type){
+ecl::Variable<T>::Variable(const Variable<T>& other) : Buffer(&local_value, other.data_size, other.access){
     local_value = other.local_value;
 }
 template<typename T>
@@ -1070,7 +1092,7 @@ ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
     local_value = other.local_value;
     data_ptr = &local_value;
     data_size = other.data_size;
-    memory_type = other.memory_type;
+    access = other.access;
 
     return *this;
 }
@@ -1087,7 +1109,7 @@ ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
     clearFields();
 
     data_size = other.data_size;
-    memory_type = other.memory_type;
+    access = other.access;
     buffer = std::move(other.buffer);
 
     local_value = other.local_value;
@@ -1198,11 +1220,8 @@ ecl::Variable<T>::~Variable(){
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
 void ecl::Array<T>::clearFields(){
+    if(manage == AUTO) ref = false;
     Buffer::clearFields();
-    if(control == BIND){
-        delete[] static_cast<T*>(data_ptr);
-        data_ptr = nullptr;
-    }
 }
 
 template<typename T>
@@ -1210,56 +1229,55 @@ ecl::Array<T>::Array() : Buffer(nullptr, 0, READ){
 }
 
 template<typename T>
-ecl::Array<T>::Array(std::size_t array_size) : Buffer(nullptr, array_size * sizeof(T), READ_WRITE){
-    this->control = BIND;
-    T* temp = new T[array_size];
-    data_ptr = temp;
-}
-template<typename T>
-ecl::Array<T>::Array(std::size_t array_size, ACCESS memory_access) : Buffer(nullptr, array_size * sizeof(T), memory_access){
-    this->control = BIND;
-    T* temp = new T[array_size];
-    data_ptr = temp;
+ecl::Array<T>::Array(std::size_t array_size, ACCESS access) : Buffer(nullptr, array_size * sizeof(T), access){
+    this->manage = AUTO;
+    this->size = array_size;
+    data_ptr = new T[array_size];
 }
 
 template<typename T>
-ecl::Array<T>::Array(const T* array, std::size_t array_size, CONTROL control) : Buffer((void*)array, array_size * sizeof(T), READ){
-    this->control = control;
+ecl::Array<T>::Array(const T* array, std::size_t array_size, FREE manage) : Buffer((void*)array, array_size * sizeof(T), READ){
+    this->manage = manage;
+    this->size = array_size;
 }
 
 template<typename T>
-ecl::Array<T>::Array(T* array, std::size_t array_size, ACCESS memory_access, CONTROL control) : Buffer(static_cast<void*>(array), array_size * sizeof(T), memory_access) {
-    this->control = control;
+ecl::Array<T>::Array(T* array, std::size_t array_size, ACCESS access, FREE manage) : Buffer(static_cast<void*>(array), array_size * sizeof(T), access) {
+    this->manage = manage;
+    this->size = array_size;
 }
 
 template<typename T>
-ecl::Array<T>::Array(const Array<T>& other) : Buffer(nullptr, other.data_size, other.memory_type){
-    control = BIND;
-    std::size_t count = other.data_size / sizeof(T);
-    data_ptr = new T[count];
+ecl::Array<T>::Array(const Array<T>& other) : Buffer(other){
+    clearFields();
 
-    std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
+    manage = AUTO;
+    size = other.size;
+    access = other.access;
 }
 template<typename T>
 ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
     clearFields();
 
-    control = BIND;
-    std::size_t count = other.data_size / sizeof(T);
-    data_ptr = new T[count];
-
-    std::copy(static_cast<T*>(other.data_ptr), static_cast<T*>(other.data_ptr) + count, static_cast<T*>(data_ptr));
-
     data_size = other.data_size;
-    memory_type = other.memory_type;        
+    access = other.access;
+    data_ptr = new uint8_t[data_size];
+
+    memcpy(data_ptr, other.data_ptr, data_size);
+    ref = false;
+
+    manage = AUTO;
+    size = other.size;
+    access = other.access;    
 
     return *this;
 }
 
 template<typename T>
 ecl::Array<T>::Array(Array<T>&& other) : Buffer(std::move(other)){
-    control = other.control;
-    other.control = FREE;
+    manage = other.manage;
+    size = other.size;
+    other.manage = MANUALY;
 
     other.clearFields();
 }
@@ -1269,11 +1287,12 @@ ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
 
     data_ptr = other.data_ptr;
     data_size = other.data_size;
-    memory_type = other.memory_type;
+    access = other.access;
     buffer = std::move(other.buffer);
-    control = other.control;
+    manage = other.manage;
+    size = other.size;
 
-    other.control = FREE;
+    other.manage = MANUALY;
 
     other.clearFields();
     return *this;
@@ -1283,29 +1302,14 @@ template<typename T>
 const T* ecl::Array<T>::getConstArray() const{
     return static_cast<const T*>(data_ptr);
 }
+template<typename T>
+std::size_t ecl::Array<T>::getSize() const{
+    return size;
+}
 
 template<typename T>
 T* ecl::Array<T>::getArray(){
     return static_cast<T*>(data_ptr);
-}
-
-template<typename T>
-void ecl::Array<T>::setArray(const T* array, std::size_t array_size){
-    clearFields();
-
-    this->setDataPtr((void*)array);
-    this->setDataSize(array_size * sizeof(T));
-    this->setMemoryType(READ);
-    control = FREE;
-}
-template<typename T>
-void ecl::Array<T>::setArray(T* array, std::size_t array_size, ACCESS memory_access){
-    clearFields();
-
-    this->setDataPtr(array);
-    this->setDataSize(array_size * sizeof(T));
-    this->setMemoryType(memory_access);
-    control = FREE;
 }
 
 template<typename T>
@@ -1362,7 +1366,11 @@ void ecl::Computer::send(const std::vector<Buffer*>& args){
     checkError("Computer [send data]");
 }
 
-void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const Buffer*>& args, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
+void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size){
+    auto& prog = frame.prog;
+    auto& kern = frame.kern;
+    const auto& args = frame.args;
+
     prog.checkProgram(context, device);
     cl_program prog_program = prog.getProgram(context);
     
@@ -1386,7 +1394,11 @@ void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const
     error = clFinish(queue);
     checkError("Computer [compute]");
 }
-void ecl::Computer::compute(Program& prog, Kernel& kern, const std::vector<const Buffer*>& args, const std::vector<std::size_t>& global_work_size){
+void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size){
+    auto& prog = frame.prog;
+    auto& kern = frame.kern;
+    const auto& args = frame.args;
+    
     prog.checkProgram(context, device);
     cl_program prog_program = prog.getProgram(context);
     
@@ -1427,7 +1439,7 @@ const std::string& ecl::Computer::getName() const{
 void ecl::Computer::receive(Buffer& arg, bool sync) {
 	bool sended = arg.checkBuffer(context);
 	if (!sended) throw std::runtime_error("Computer [receive]: buffer wasn't sent to computer");
-	if (arg.getMemoryType() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
+	if (arg.getAccess() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
 
 	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
 	checkError("Computer [receive data]");
