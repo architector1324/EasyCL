@@ -12,3 +12,4 @@ configure_file(program.cl
 ###############################################################################
 
 easycl_add_example(SIMD SIMD.cpp)
+easycl_add_example(single single.cpp)

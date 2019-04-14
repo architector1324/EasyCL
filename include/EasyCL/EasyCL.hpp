@@ -308,6 +308,7 @@ namespace ecl{
 
             void grid(const Frame&, const std::vector<std::size_t>&, const std::vector<std::size_t>&);
             void grid(const Frame&, const std::vector<std::size_t>&);
+            void task(const Frame&);
 
             friend std::ostream& operator<<(std::ostream&, const Computer&);
 			friend Computer& operator<<(Computer&, Buffer&);
@@ -1364,18 +1365,18 @@ void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& glo
     for (std::size_t i(0); i < count; i++) {
         const Buffer* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("Computer [compute]: buffer wasn't sent to computer");
+        if(!sended) throw std::runtime_error("Computer [grid]: buffer wasn't sent to computer");
 
         cl_mem buf = curr->getBuffer(context);
         error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
-        checkError("Computer [compute]");
+        checkError("Computer [grid]");
     }
 
     error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), local_work_size.data(), 0, nullptr, nullptr);
-    checkError("Computer [compute]");
+    checkError("Computer [grid]");
     
     error = clFinish(queue);
-    checkError("Computer [compute]");
+    checkError("Computer [grid]");
 }
 void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size){
     auto& prog = frame.prog;
@@ -1392,18 +1393,46 @@ void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& glo
     for (std::size_t i(0); i < count; i++) {
         const Buffer* curr = args.at(i);
         bool sended = curr->checkBuffer(context);
-        if(!sended) throw std::runtime_error("Computer [compute]: buffer wasn't sent to computer");
+        if(!sended) throw std::runtime_error("Computer [grid]: buffer wasn't sent to computer");
 
         cl_mem buf = curr->getBuffer(context);
         error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
-        checkError("Computer [compute]");
+        checkError("Computer [grid]");
     }
 
     error = clEnqueueNDRangeKernel(queue, kern_kernel, global_work_size.size(), nullptr, global_work_size.data(), nullptr, 0, nullptr, nullptr);
-    checkError("Computer [compute]");
+    checkError("Computer [grid]");
     
     error = clFinish(queue);
-    checkError("Computer [compute]");
+    checkError("Computer [grid]");
+}
+void ecl::Computer::task(const Frame& frame){
+    auto& prog = frame.prog;
+    auto& kern = frame.kern;
+    const auto& args = frame.args;
+    
+    prog.checkProgram(context, device);
+    cl_program prog_program = prog.getProgram(context);
+    
+    kern.checkKernel(prog_program);
+    cl_kernel kern_kernel = kern.getKernel(prog_program);
+
+    std::size_t count = args.size();
+    for (std::size_t i(0); i < count; i++) {
+        const Buffer* curr = args.at(i);
+        bool sended = curr->checkBuffer(context);
+        if(!sended) throw std::runtime_error("Computer [task]: buffer wasn't sent to computer");
+
+        cl_mem buf = curr->getBuffer(context);
+        error = clSetKernelArg(kern_kernel, i, sizeof(cl_mem), &buf);
+        checkError("Computer [task]");
+    }
+
+    error = clEnqueueTask(queue, kern_kernel, 0, nullptr, nullptr);
+    checkError("Computer [task]");
+
+    error = clFinish(queue);
+    checkError("Computer [task]");
 }
 
 cl_device_id ecl::Computer::getDevice() const{
