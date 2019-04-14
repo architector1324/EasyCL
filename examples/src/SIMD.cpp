@@ -22,7 +22,6 @@ int main(){
         std::cout << a[i] << " ";
     std::cout << std::endl;
 
-	video.release(a);
     ecl::System::free();
 
     return 0;

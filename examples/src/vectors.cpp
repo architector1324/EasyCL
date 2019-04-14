@@ -18,7 +18,6 @@ int main() {
 	video << v1 << v2 << result;
 	video.compute(prog, kern, {&v1, &v2, &result}, {4});
 	video >> result;
-	video.release({ &v1, &v2, &result });
 
 	std::cout << result.getConstArray()[0] << std::endl;
 	std::cout << result.getConstArray()[1] << std::endl;
