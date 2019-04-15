@@ -297,15 +297,15 @@ namespace ecl{
 			cl_command_queue getQueue() const;
             const std::string& getName() const;
 
-			void send(Buffer&, bool sync = true);
-			void receive(Buffer&, bool sync = true);
-			void release(Buffer&, bool sync = true);
-			void grab(Buffer&, bool sync = true);
+			void send(Buffer&, EXEC sync = SYNC);
+			void receive(Buffer&, EXEC sync = SYNC);
+			void release(Buffer&, EXEC sync = SYNC);
+			void grab(Buffer&, EXEC sync = SYNC);
 
-            void send(const std::vector<Buffer*>&);
-			void receive(const std::vector<Buffer*>&);
-			void release(const std::vector<Buffer*>&);
-			void grab(const std::vector<Buffer*>&);
+            void send(const std::vector<Buffer*>&, EXEC sync = SYNC);
+			void receive(const std::vector<Buffer*>&, EXEC sync = SYNC);
+			void release(const std::vector<Buffer*>&, EXEC sync = SYNC);
+			void grab(const std::vector<Buffer*>&, EXEC sync = SYNC);
 
             void grid(const Frame&, const std::vector<std::size_t>&, const std::vector<std::size_t>&, EXEC sync = SYNC);
             void grid(const Frame&, const std::vector<std::size_t>&, EXEC sync = SYNC);
@@ -1334,25 +1334,6 @@ ecl::Computer::Computer(std::size_t i, const Platform& platform, DEVICE dev){
 }
 
 
-void ecl::Computer::send(ecl::Buffer& arg, bool sync) {
-	arg.createBuffer(context);
-
-	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
-	checkError("Computer [send data]");
-
-    if(sync){
-        error = clFinish(queue);
-        checkError("Computer [send data]");
-    }
-}
-void ecl::Computer::send(const std::vector<Buffer*>& args){
-    std::size_t count = args.size();
-    for(std::size_t i(0); i < count; i++) send(*args[i], false);
-    
-	error = clFinish(queue);
-    checkError("Computer [send data]");
-}
-
 void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size, EXEC sync){
     auto& prog = frame.prog;
     auto& kern = frame.kern;
@@ -1453,7 +1434,21 @@ const std::string& ecl::Computer::getName() const{
     return name;
 }
 
-void ecl::Computer::receive(Buffer& arg, bool sync) {
+void ecl::Computer::send(ecl::Buffer& arg, EXEC sync) {
+	arg.createBuffer(context);
+
+	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
+	checkError("Computer [send data]");
+
+    if(sync == SYNC) await();
+}
+void ecl::Computer::send(const std::vector<Buffer*>& args, EXEC sync){
+    std::size_t count = args.size();
+    for(std::size_t i(0); i < count; i++) send(*args[i], ASYNC);
+    
+	if(sync == SYNC) await();
+}
+void ecl::Computer::receive(Buffer& arg, EXEC sync) {
 	bool sended = arg.checkBuffer(context);
 	if (!sended) throw std::runtime_error("Computer [receive]: buffer wasn't sent to computer");
 	if (arg.getAccess() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
@@ -1461,43 +1456,31 @@ void ecl::Computer::receive(Buffer& arg, bool sync) {
 	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
 	checkError("Computer [receive data]");
 
-    if(sync){
-        error = clFinish(queue);
-        checkError("Computer [receive data]");
-    }
+    if(sync == SYNC) await();
 }
-void ecl::Computer::receive(const std::vector<Buffer*>& args){
+void ecl::Computer::receive(const std::vector<Buffer*>& args, EXEC sync){
     std::size_t count = args.size();
-	for (std::size_t i(0); i < count; i++) receive(*args[i], false);
+	for (std::size_t i(0); i < count; i++) receive(*args[i], ASYNC);
 
-    error = clFinish(queue);
-    checkError("Computer [receive data]");
+    if(sync == SYNC) await();
 }
-
-void ecl::Computer::release(Buffer& arg, bool sync) {
+void ecl::Computer::release(Buffer& arg, EXEC sync) {
 	arg.releaseBuffer(context);
 
-    if(sync){
-        error = clFinish(queue);
-        checkError("Computer [clear data]");
-    }
+    if(sync == SYNC) await();
 }
-
-void ecl::Computer::release(const std::vector<Buffer*>& args){
-	for (auto* arg : args) release(*arg, false);
+void ecl::Computer::release(const std::vector<Buffer*>& args, EXEC sync){
+	for (auto* arg : args) release(*arg, ASYNC);
     
-    error = clFinish(queue);
-    checkError("Computer [clear data]");
+    if(sync == SYNC) await();
 }
-
-void ecl::Computer::grab(Buffer& arg, bool sync) {
+void ecl::Computer::grab(Buffer& arg, EXEC sync) {
 	receive(arg, sync);
 	release(arg, sync);
 }
-
-void ecl::Computer::grab(const std::vector<Buffer*>& args){
+void ecl::Computer::grab(const std::vector<Buffer*>& args, EXEC sync){
     receive(args);
-    release(args);
+    release(args, sync);
 }
 
 namespace ecl {
