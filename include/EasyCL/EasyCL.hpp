@@ -939,7 +939,7 @@ ecl::Kernel::~Kernel(){
 // Buffer Class Definition
 ///////////////////////////////////////////////////////////////////////////////
 void ecl::Buffer::clearFields(){
-    for(const std::pair<cl_context, cl_mem>& p : buffer) releaseBuffer(p.first);
+	while (buffer.size() > 0) releaseBuffer(buffer.begin()->first);
     if(!ref) delete[] static_cast<uint8_t*>(data_ptr);
 
     data_ptr = nullptr;
