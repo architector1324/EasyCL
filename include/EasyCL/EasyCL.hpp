@@ -275,7 +275,7 @@ namespace ecl{
     struct Frame{
         Program& prog;
         Kernel& kern;
-        const std::vector<const Buffer*>& args;
+        const std::vector<const Buffer*> args;
     };
 ///////////////////////////////////////////////////////////////////////////////
 // Computer Class Declaration
