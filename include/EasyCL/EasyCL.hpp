@@ -195,13 +195,13 @@ namespace ecl{
 		void createBuffer(cl_context);
 		void releaseBuffer(cl_context);
 
-		virtual void clear();
+		void clear();
 
 		~Buffer();
     };
 
 ///////////////////////////////////////////////////////////////////////////////
-// var Class Declaration
+// var Container Declaration
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
 class var : public Buffer {
@@ -245,6 +245,43 @@ public:
 	void clear();
 
 	~var();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// array Class Declaration
+///////////////////////////////////////////////////////////////////////////////
+template<typename T>
+class array : public Buffer {
+private:
+	T* arr = nullptr;
+	std::size_t arr_size = 0;
+	FREE manage = MANUALLY;
+
+	void copy(const array<T>&);
+	void move(array<T>&);
+public:
+	array();
+	explicit array(std::size_t, ACCESS access = READ_WRITE);
+	array(const T*, std::size_t, FREE manage = MANUALLY);
+	array(T*, std::size_t, ACCESS, FREE manage = MANUALLY);
+
+	array(const array<T>&);
+	array<T>& operator=(const array<T>&);
+
+	array(array<T>&&);
+	array<T>& operator=(array<T>&&);
+
+	T* getArray();
+	const T* getConstArray() const;
+	void* getPtr() override;
+	std::size_t getArraySize() const;
+
+	T& operator[](std::size_t);
+	operator T*();
+	operator const T*() const;
+
+	void clear();
+	~array();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1018,7 +1055,7 @@ ecl::Buffer::~Buffer() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// var Class Definition
+// var Container Definition
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
 void ecl::var<T>::copy(const var<T>& other) {
@@ -1059,7 +1096,7 @@ ecl::var<T>::var(const T& value, ACCESS access) : var(access) {
 }
 
 template<typename T>
-ecl::var<T>::var(const var<T>& other) : Buffer(nullptr, 0, READ) {
+ecl::var<T>::var(const var<T>& other) : Buffer(nullptr, 0, READ_WRITE) {
 	copy(other);
 }
 template<typename T>
@@ -1070,7 +1107,7 @@ ecl::var<T>& ecl::var<T>::operator=(const var<T>& other) {
 }
 
 template<typename T>
-ecl::var<T>::var(var<T>&& other) : Buffer(nullptr, 0, READ){
+ecl::var<T>::var(var<T>&& other) : Buffer(nullptr, 0, READ_WRITE){
 	move(other);
 }
 template<typename T>
@@ -1169,6 +1206,127 @@ void ecl::var<T>::clear() {
 
 template<typename T>
 ecl::var<T>::~var() {
+	clear();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// array Container Definition
+///////////////////////////////////////////////////////////////////////////////
+template<typename T>
+void ecl::array<T>::copy(const array<T>& other) {
+	clear();
+
+	Buffer::copy(other);
+
+	arr_size = other.arr_size;
+	arr = new T[arr_size];
+	std::copy(arr, arr + arr_size, other.arr);
+
+	setPtr(arr);
+	manage = AUTO;
+}
+template<typename T>
+void ecl::array<T>::move(array<T>& other) {
+	clear();
+
+	Buffer::move(other);
+	arr = other.arr;
+	arr_size = other.arr_size;
+	setPtr(arr);
+	manage = other.manage;
+
+	other.clear();
+}
+
+template<typename T>
+ecl::array<T>::array() : Buffer(nullptr, 0, READ_WRITE) {
+	arr = nullptr;
+	arr_size = 0;
+	manage = MANUALLY;
+}
+template<typename T>
+ecl::array<T>::array(std::size_t size, ACCESS access) : Buffer(nullptr, size * sizeof(T), access) {
+	arr = new T[size];
+	setPtr(arr);
+	arr_size = size;
+	manage = AUTO;
+}
+template<typename T>
+ecl::array<T>::array(const T* arr, std::size_t size, FREE manage = MANUALLY) : Buffer(nullptr, size * sizeof(T), READ){
+	this->arr = const_cast<T*>(arr);
+	setPtr(this->arr);
+	arr_size = size;
+	this->manage = manage;
+}
+template<typename T>
+ecl::array<T>::array(T* arr, std::size_t size, ACCESS access, FREE manage = MANUALLY) : Buffer(nullptr, size * sizeof(T), access) {
+	this->arr = arr;
+	setPtr(this->arr);
+	arr_size = size;
+	this->manage = manage;
+}
+
+template<typename T>
+ecl::array<T>::array(const array<T>& other) : Buffer(nullptr, 0, READ_WRITE) {
+	copy(other);
+}
+template<typename T>
+ecl::array<T>& ecl::array<T>::operator=(const array<T>& other) {
+	copy(other);
+	return *this;
+}
+
+template<typename T>
+ecl::array<T>::array(array<T>&& other) : Buffer(nullptr, 0, READ_WRITE) {
+	move(other);
+}
+template<typename T>
+ecl::array<T>& ecl::array<T>::operator=(array<T>&& other) {
+	move(other);
+	return *this;
+}
+
+template<typename T>
+T* ecl::array<T>::getArray() {
+	return arr;
+}
+template<typename T>
+const T* ecl::array<T>::getConstArray() const {
+	return arr;
+}
+template<typename T>
+void* ecl::array<T>::getPtr() {
+	return arr;
+}
+template<typename T>
+std::size_t ecl::array<T>::getArraySize() const {
+	return arr_size;
+}
+
+template<typename T>
+T& ecl::array<T>::operator[](std::size_t index) {
+	return arr[index];
+}
+template<typename T>
+ecl::array<T>::operator T*() {
+	return arr;
+}
+template<typename T>
+ecl::array<T>::operator const T*() const {
+	return arr;
+}
+
+template<typename T>
+void ecl::array<T>::clear() {
+	Buffer::clear();
+	if (manage == AUTO) delete[] arr;
+
+	arr = nullptr;
+	arr_size = 0;
+	manage = MANUALLY;
+}
+template<typename T>
+ecl::array<T>::~array() {
 	clear();
 }
 

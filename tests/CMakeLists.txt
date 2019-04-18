@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.7...3.13)
 ###############################################################################
 
 easycl_add_test(Buffer Buffer.cpp)
-#easycl_add_test(Array Array.cpp)
+easycl_add_test(Array Array.cpp)
 easycl_add_test(Computer Computer.cpp)
 easycl_add_test(Error Error.cpp)
 easycl_add_test(Kernel Kernel.cpp)

@@ -33,7 +33,8 @@ int main(){
     auto plat = ecl::System::getPlatform(0);
     auto video = ecl::Computer(0, plat, ecl::DEVICE::GPU);
 
-    auto a = ecl::Array<int>(12); // new int[12]
+    // setup data container
+    ecl::array<int> a(12); // new int[12]
 
     // setup compute frame
     ecl::Frame frame = {prog, kern, {&a}};
