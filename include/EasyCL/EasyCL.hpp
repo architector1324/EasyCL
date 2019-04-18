@@ -213,6 +213,8 @@ private:
 public:
 	var();
 	var(const T&);
+	var(ACCESS);
+	var(const T&, ACCESS);
 
 	var(const var<T>&);
 	var<T>& operator=(const var<T>&);
@@ -1046,9 +1048,18 @@ ecl::var<T>::var(const T& value) : var(){
 	this->value = value;
 	setPtr(&this->value);
 }
+template<typename T>
+ecl::var<T>::var(ACCESS access) : Buffer(nullptr, sizeof(T), access) {
+	value = T();
+}
+template<typename T>
+ecl::var<T>::var(const T& value, ACCESS access) : var(access) {
+	this->value = value;
+	setPtr(&this->value);
+}
 
 template<typename T>
-ecl::var<T>::var(const var<T>& other) {
+ecl::var<T>::var(const var<T>& other) : Buffer(nullptr, 0, READ) {
 	copy(other);
 }
 template<typename T>

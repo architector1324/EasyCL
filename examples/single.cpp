@@ -4,10 +4,7 @@
 int main(){
     auto prog = ecl::Program::load("program.cl");
     ecl::Kernel kern = "single";
-    ecl::var<int> b = 3;
-	ecl::var<int> a;
-
-	a = std::move(b);
+	ecl::var<int> a = 3;
 
     auto plat = ecl::System::getPlatform(0);
     auto video = ecl::Computer(0, plat, ecl::DEVICE::GPU);
