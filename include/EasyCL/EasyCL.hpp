@@ -276,6 +276,8 @@ public:
 	void* getPtr() override;
 	std::size_t getArraySize() const;
 
+	void view(array<T>&);
+
 	T& operator[](std::size_t);
 	operator T*();
 	operator const T*() const;
@@ -1220,7 +1222,7 @@ void ecl::array<T>::copy(const array<T>& other) {
 
 	arr_size = other.arr_size;
 	arr = new T[arr_size];
-	std::copy(arr, arr + arr_size, other.arr);
+	for(size_t i = 0; i < arr_size; i++) arr[i] = other.arr[i];
 
 	setPtr(arr);
 	manage = AUTO;
@@ -1234,6 +1236,7 @@ void ecl::array<T>::move(array<T>& other) {
 	arr_size = other.arr_size;
 	setPtr(arr);
 	manage = other.manage;
+    other.manage = MANUALLY;
 
 	other.clear();
 }
@@ -1252,14 +1255,14 @@ ecl::array<T>::array(std::size_t size, ACCESS access) : Buffer(nullptr, size * s
 	manage = AUTO;
 }
 template<typename T>
-ecl::array<T>::array(const T* arr, std::size_t size, FREE manage = MANUALLY) : Buffer(nullptr, size * sizeof(T), READ){
+ecl::array<T>::array(const T* arr, std::size_t size, FREE manage) : Buffer(nullptr, size * sizeof(T), READ){
 	this->arr = const_cast<T*>(arr);
 	setPtr(this->arr);
 	arr_size = size;
 	this->manage = manage;
 }
 template<typename T>
-ecl::array<T>::array(T* arr, std::size_t size, ACCESS access, FREE manage = MANUALLY) : Buffer(nullptr, size * sizeof(T), access) {
+ecl::array<T>::array(T* arr, std::size_t size, ACCESS access, FREE manage) : Buffer(nullptr, size * sizeof(T), access) {
 	this->arr = arr;
 	setPtr(this->arr);
 	arr_size = size;
@@ -1301,6 +1304,19 @@ void* ecl::array<T>::getPtr() {
 template<typename T>
 std::size_t ecl::array<T>::getArraySize() const {
 	return arr_size;
+}
+
+template<typename T>
+void ecl::array<T>::view(array<T>& other) {
+	clear();
+	buffer = other.buffer;
+	ptr = other.ptr;
+	size = other.size;
+	access = other.access;
+
+	arr = other.arr;
+	arr_size = other.arr_size;
+	manage = MANUALLY;
 }
 
 template<typename T>
