@@ -4,8 +4,8 @@
 
 TEST_CASE("Constructor") {
 	ecl::Buffer buffer(nullptr, 0, ecl::ACCESS::READ);
-	REQUIRE(buffer.getDataPtr() == nullptr);
-	REQUIRE(buffer.getDataSize() == 0);
+	REQUIRE(buffer.getPtr() == nullptr);
+	REQUIRE(buffer.getSize() == 0);
 	REQUIRE(buffer.getAccess() == ecl::ACCESS::READ);
 	// TODO
 }

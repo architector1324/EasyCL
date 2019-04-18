@@ -11,5 +11,6 @@ configure_file(program.cl
 # Add Examples
 ###############################################################################
 
-easycl_add_example(SIMD SIMD.cpp)
+easycl_add_example(buffer buffer.cpp)
+#easycl_add_example(SIMD SIMD.cpp)
 easycl_add_example(single single.cpp)

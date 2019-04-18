@@ -84,6 +84,8 @@ namespace ecl{
 
         std::string getBuildError(cl_context, cl_device_id);
 
+		void copy(const Program&);
+		void move(Program&);
     public:
         Program(const char*);
         Program(const std::string&);
@@ -115,7 +117,7 @@ namespace ecl{
 
         bool checkProgram(cl_context, cl_device_id);
 
-        void clearFields();
+        void clear();
         ~Program();
     };
 
@@ -127,6 +129,8 @@ namespace ecl{
         std::map<cl_program, cl_kernel> kernel; // карта ядер по программам
         std::string name;
 
+		void copy(const Kernel&);
+		void move(Kernel&);
     public:
         Kernel(const char*);
         Kernel(const std::string&);
@@ -155,7 +159,7 @@ namespace ecl{
         cl_kernel getKernel(cl_program) const;
         bool checkKernel(cl_program);
 
-        void clearFields();
+        void clear();
         ~Kernel();
     };
 
@@ -165,109 +169,81 @@ namespace ecl{
     class Buffer : public Error{
     protected:
         std::map<cl_context, cl_mem> buffer; // buffers map by context
-        void* data_ptr = nullptr; // pointer to data
-        std::size_t data_size = 0; // sizeof data
+        void* ptr = nullptr; // pointer to data
+        std::size_t size = 0; // sizeof data
         ACCESS access = READ; // memory access
 
-        bool ref = true;
+		void copy(const Buffer&);
+		void move(Buffer&);
     public:
         Buffer(void*, std::size_t, ACCESS);
 
-        Buffer(const Buffer&);
-        Buffer& operator=(const Buffer&);
+		Buffer(const Buffer&);
+		Buffer& operator=(const Buffer&);
 
-        Buffer(Buffer&&);
-        Buffer& operator=(Buffer&&);
+		Buffer(Buffer&&);
+		Buffer& operator=(Buffer&&);
 
-        void* getDataPtr();
-        std::size_t getDataSize() const;
-        ACCESS getAccess() const;
-        cl_mem getBuffer(cl_context) const;
+		cl_mem getBuffer(cl_context) const;
+		virtual void* getPtr();
+		std::size_t getSize() const;
+		ACCESS getAccess() const;
 
-        bool checkBuffer(cl_context) const;
-        void createBuffer(cl_context);
-        void releaseBuffer(cl_context);
+		void setPtr(void*);
 
-        void setDataPtr(void*);
-        void setDataSize(std::size_t);
-        void setAccess(ACCESS);
+		bool checkBuffer(cl_context) const;
+		void createBuffer(cl_context);
+		void releaseBuffer(cl_context);
 
-        virtual void clearFields();
+		virtual void clear();
 
-        ~Buffer();
+		~Buffer();
     };
 
 ///////////////////////////////////////////////////////////////////////////////
-// Variable Class Declaration
+// var Class Declaration
 ///////////////////////////////////////////////////////////////////////////////
-    template<typename T> class Variable : public Buffer{
-        private:
-            T local_value;
+template<typename T>
+class var : public Buffer {
+private:
+	T value;
 
-        public:
-            Variable();
-            Variable(const T&, ACCESS access = READ_WRITE);
+	void copy(const var<T>&);
+	void move(var<T>&);
+public:
+	var();
+	var(const T&);
 
-            Variable(const Variable<T>&);
-            Variable<T>& operator=(const Variable<T>&);
+	var(const var<T>&);
+	var<T>& operator=(const var<T>&);
 
-            Variable(Variable<T>&&);
-            Variable<T>& operator=(Variable<T>&&);
+	var(var<T>&&);
+	var<T>& operator=(var<T>&&);
 
-            const T& getValue() const;
-            void setValue(const T&);
+	const T& getValue() const;
+	void* getPtr() override;
 
-            Variable<T>& operator++(int);
-            Variable<T>& operator--(int);
-            Variable<T>& operator=(const T&);
-            Variable<T>& operator+=(const T&);
-            Variable<T>& operator-=(const T&);
-            Variable<T>& operator*=(const T&);
-            Variable<T>& operator/=(const T&);
-            bool operator==(const T&);
-            bool operator!=(const T&);
-            Variable<T> operator+(const T&);
-            Variable<T> operator-(const T&);
-            Variable<T> operator*(const T&);
-            Variable<T> operator/(const T&);
+	void setValue(const T&);
 
-            operator T&();
-            operator const T&() const;
+	var<T>& operator++(int);
+	var<T>& operator--(int);
+	var<T>& operator=(const T&);
+	var<T>& operator+=(const T&);
+	var<T>& operator-=(const T&);
+	var<T>& operator*=(const T&);
+	var<T>& operator/=(const T&);
+	var<T> operator+(const T&);
+	var<T> operator-(const T&);
+	var<T> operator*(const T&);
+	var<T> operator/(const T&);
 
-            void clearFields() override;
-            ~Variable();
-    };
+	operator T&();
+	operator const T&() const;
 
-///////////////////////////////////////////////////////////////////////////////
-// Array Class Declaration
-///////////////////////////////////////////////////////////////////////////////
-    template<typename T> class Array : public Buffer{
-        private:
-            FREE manage = FREE::MANUALLY;
-            std::size_t size;
-        public:
-            Array();
-            Array(std::size_t, ACCESS access = READ_WRITE);
-            Array(const T*, std::size_t, FREE manage = MANUALLY);
-            Array(T*, std::size_t, ACCESS, FREE manage = MANUALLY);
+	void clear();
 
-            Array(const Array<T>&);
-            Array<T>& operator=(const Array<T>&);
-
-            Array(Array<T>&&);
-            Array<T>& operator=(Array<T>&&);
-
-            T* getArray();
-            std::size_t getSize() const;
-            const T* getConstArray() const;
-
-            T& operator[](std::size_t i);
-            operator T*();
-            operator const T*() const;
-
-            void clearFields() override;
-            ~Array();
-    };
+	~var();
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Frame Struct Declaration
@@ -694,7 +670,19 @@ std::string ecl::Program::getBuildError(cl_context context, cl_device_id device)
     return info;
 }
 
-void ecl::Program::clearFields(){
+void ecl::Program::copy(const Program& other) {
+	clear();
+	source = other.source;
+}
+void ecl::Program::move(Program& other) {
+	clear();
+	source = other.source;
+	program = std::move(other.program);
+
+	other.clear();
+}
+
+void ecl::Program::clear(){
     for(const auto& p : program) clReleaseProgram(p.second);
     source.clear();
     program.clear();
@@ -708,27 +696,19 @@ ecl::Program::Program(const std::string& src){
 }
 
 ecl::Program::Program(const Program& other){
-    source = other.source;
+	copy(other);
 }
 ecl::Program& ecl::Program::operator=(const Program& other){
-    clearFields();
-    source = other.source;
+	copy(other);
 
     return *this;
 }
 
 ecl::Program::Program(Program&& other){
-    source = other.source;
-    program = std::move(other.program);
-
-    other.clearFields();
+	move(other);
 }
 ecl::Program& ecl::Program::operator=(Program&& other){
-    clearFields();
-    source = other.source;
-    program = std::move(other.program);
-
-    other.clearFields();
+	move(other);
 
     return *this;
 }
@@ -822,13 +802,26 @@ bool ecl::Program::checkProgram(cl_context context, cl_device_id device){
 }
 
 ecl::Program::~Program(){
-    clearFields();
+    clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Kernel Class Definition
 ///////////////////////////////////////////////////////////////////////////////
-void ecl::Kernel::clearFields(){
+void ecl::Kernel::copy(const Kernel& other) {
+	clear();
+	name = other.name;
+}
+void ecl::Kernel::move(Kernel& other) {
+	clear();
+
+	name = other.name;
+	kernel = std::move(other.kernel);
+
+	other.clear();
+}
+
+void ecl::Kernel::clear(){
     for(const auto& p : kernel) clReleaseKernel(p.second);
     name.clear();
 }
@@ -840,27 +833,19 @@ ecl::Kernel::Kernel(const std::string& name){
 }
 
 ecl::Kernel::Kernel(const Kernel& other){
-    name = other.name;
+	copy(other);
 }
 ecl::Kernel& ecl::Kernel::operator=(const Kernel& other){
-    clearFields();
-    name = other.name;
+	copy(other);
 
     return *this;
 }
 
 ecl::Kernel::Kernel(Kernel&& other){
-    name = other.name;
-    kernel = std::move(other.kernel);
-
-    other.clearFields();
+	move(other);
 }
 ecl::Kernel& ecl::Kernel::operator=(Kernel&& other){
-    clearFields();
-    name = other.name;
-    kernel = std::move(other.kernel);
-
-    other.clearFields();
+	move(other);
 
     return *this;
 }
@@ -932,391 +917,248 @@ bool ecl::Kernel::checkKernel(cl_program program){
 }
 
 ecl::Kernel::~Kernel(){
-    clearFields();
+    clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Buffer Class Definition
 ///////////////////////////////////////////////////////////////////////////////
-void ecl::Buffer::clearFields(){
-	while (buffer.size() > 0) releaseBuffer(buffer.begin()->first);
-    if(!ref) delete[] static_cast<uint8_t*>(data_ptr);
+void ecl::Buffer::copy(const Buffer& other) {
+	clear();
 
-    data_ptr = nullptr;
-    data_size = 0;
-    access = READ;
-    buffer.clear();
+	ptr = other.ptr;
+	size = other.size;
+	access = other.access;
+
+	for (auto& p : other.buffer) createBuffer(p.first);
 }
-ecl::Buffer::Buffer(void* data_ptr, std::size_t data_size, ACCESS access){
-    this->data_ptr = data_ptr;
-    this->data_size = data_size;
-    this->access = access;
-}
+void ecl::Buffer::move(Buffer& other) {
+	clear();
 
-ecl::Buffer::Buffer(const Buffer& other){
-    clearFields();
+	ptr = other.ptr;
+	size = other.size;
+	access = other.access;
+	buffer = std::move(other.buffer);
 
-    data_size = other.data_size;
-    access = other.access;
-    data_ptr = new uint8_t[data_size];
-
-    memcpy(data_ptr, other.data_ptr, data_size);
-    ref = false;
-}
-ecl::Buffer& ecl::Buffer::operator=(const Buffer& other){
-    clearFields();
-
-    data_size = other.data_size;
-    access = other.access;
-    data_ptr = new uint8_t[data_size];
-
-    memcpy(data_ptr, other.data_ptr, data_size);
-    ref = false;
-
-    return *this;
+	other.clear();
 }
 
-ecl::Buffer::Buffer(Buffer&& other){
-    data_size = other.data_size;
-    data_ptr = other.data_ptr;
-    access = other.access;
-    buffer = std::move(other.buffer);
-
-    other.clearFields();
-}
-ecl::Buffer& ecl::Buffer::operator=(Buffer&& other){
-    clearFields();
-
-    data_size = other.data_size;
-    data_ptr = other.data_ptr;
-    access = other.access;
-    buffer = std::move(other.buffer);
-
-    other.clearFields();
-
-    return *this;
+ecl::Buffer::Buffer(void* ptr, std::size_t size, ACCESS access) {
+	this->ptr = ptr;
+	this->size = size;
+	this->access = access;
 }
 
-void* ecl::Buffer::getDataPtr(){
-    return data_ptr;
+ecl::Buffer::Buffer(const Buffer& other) {
+	copy(other);
 }
-std::size_t ecl::Buffer::getDataSize() const{
-    return data_size;
+ecl::Buffer& ecl::Buffer::operator=(const Buffer& other) {
+	copy(other);
+
+	return *this;
 }
-ecl::ACCESS ecl::Buffer::getAccess() const{
-    return access;
+
+ecl::Buffer::Buffer(Buffer&& other) {
+	move(other);
 }
+ecl::Buffer& ecl::Buffer::operator=(Buffer&& other) {
+	move(other);
+
+	return *this;
+}
+
 cl_mem ecl::Buffer::getBuffer(cl_context context) const{
-    return buffer.at(context);
+	return buffer.at(context);
+}
+void* ecl::Buffer::getPtr() {
+	return ptr;
+}
+std::size_t ecl::Buffer::getSize() const {
+	return size;
+}
+ecl::ACCESS ecl::Buffer::getAccess() const {
+	return access;
 }
 
-bool ecl::Buffer::checkBuffer(cl_context context) const{
-    if(buffer.find(context) == buffer.end()) return false;
-    return true;
-}
-void ecl::Buffer::createBuffer(cl_context context){
-    if(!checkBuffer(context)){
-        buffer.emplace(context, clCreateBuffer(context, access, data_size, nullptr, &error));
-        checkError("Buffer [check]");
-    }
+void ecl::Buffer::setPtr(void* ptr) {
+	this->ptr = ptr;
 }
 
-void ecl::Buffer::setDataPtr(void* data_ptr){
-    this->data_ptr = data_ptr;
+bool ecl::Buffer::checkBuffer(cl_context context) const {
+	if (buffer.find(context) != buffer.end()) return true;
+	return false;
 }
-void ecl::Buffer::setDataSize(std::size_t data_size){
-    if(buffer.size() == 0){
-        this->data_size = data_size;
-    }
-    else throw std::runtime_error("unable to change array size until it's using");
+void ecl::Buffer::createBuffer(cl_context context) {
+	if (!checkBuffer(context)) {
+		buffer.emplace(context, clCreateBuffer(context, access, size, nullptr, &error));
+		checkError("Buffer [check]");
+	}
 }
-void ecl::Buffer::setAccess(ACCESS access){
-    if(buffer.size() == 0){
-        this->access = access;
-    }
-    else throw std::runtime_error("unable to change array memory type until it's using");
+void ecl::Buffer::releaseBuffer(cl_context context) {
+	auto it = buffer.find(context);
+	if (it != buffer.end()) {
+		error = clReleaseMemObject(buffer.at(context));
+		buffer.erase(it);
+
+		checkError("Buffer [clear]");
+	}
 }
 
-void ecl::Buffer::releaseBuffer(cl_context context){
-    auto it = buffer.find(context);
-    if(it != buffer.end()){
-        error = clReleaseMemObject(buffer.at(context));
-        buffer.erase(it);
-
-        checkError("Buffer [clear]");
-    }
+void ecl::Buffer::clear() {
+	while(buffer.size() > 0) releaseBuffer(buffer.begin()->first);
+	ptr = nullptr;
+	size = 0;
+	access = READ;
 }
 
-ecl::Buffer::~Buffer(){
-    clearFields();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Variable Class Definition
-///////////////////////////////////////////////////////////////////////////////
-template<typename T>
-void ecl::Variable<T>::clearFields(){
-    Buffer::clearFields();
-    local_value.~T();
-}
-
-template<typename T>
-ecl::Variable<T>::Variable() : local_value(), Buffer(&local_value, sizeof(T), READ_WRITE){
-}
-template<typename T>
-ecl::Variable<T>::Variable(const T& value, ACCESS access) : Buffer(&local_value, sizeof(T), access){
-    local_value = value;
-}
-
-template<typename T>
-ecl::Variable<T>::Variable(const Variable<T>& other) : Buffer(&local_value, other.data_size, other.access){
-    local_value = other.local_value;
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator=(const Variable<T>& other){
-    clearFields();
-
-    local_value = other.local_value;
-    data_ptr = &local_value;
-    data_size = other.data_size;
-    access = other.access;
-
-    return *this;
-}
-
-template<typename T>
-ecl::Variable<T>::Variable(Variable<T>&& other) : Buffer(std::move(other)){
-    local_value = other.local_value;
-    data_ptr = &local_value;
-
-    other.clearFields();
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator=(Variable<T>&& other){
-    clearFields();
-
-    data_size = other.data_size;
-    access = other.access;
-    buffer = std::move(other.buffer);
-
-    local_value = other.local_value;
-    data_ptr = &local_value;
-
-    other.clearFields();
-    return *this;
-}
-
-template<typename T>
-const T& ecl::Variable<T>::getValue() const{
-    return local_value;
-}
-
-template<typename T>
-void ecl::Variable<T>::setValue(const T& value){
-    local_value = value;
-}
-
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator++(int){
-    ++local_value;
-    return *this;
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator--(int){
-    --local_value;
-    return *this;
-}
-
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator=(const T& value){
-    setValue(value);
-    return *this;
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator+=(const T& value){
-    setValue(local_value + value);
-    return *this;
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator-=(const T& value){
-    setValue(local_value - value);
-    return *this;
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator*=(const T& value){
-    setValue(local_value * value);
-    return *this;
-}
-template<typename T>
-ecl::Variable<T>& ecl::Variable<T>::operator/=(const T& value){
-    setValue(local_value / value);
-    return *this;
-}
-
-template<typename T>
-bool ecl::Variable<T>::operator==(const T& value){
-    return local_value == value;
-}
-template<typename T>
-bool ecl::Variable<T>::operator!=(const T& value){
-    return local_value != value;
-}
-
-template<typename T>
-ecl::Variable<T> ecl::Variable<T>::operator+(const T& value){
-    Variable<T> result(*this);
-    result += value;
-    return result;
-}
-template<typename T>
-ecl::Variable<T> ecl::Variable<T>::operator-(const T& value){
-    Variable<T> result(*this);
-    result -= value;
-    return result;
-}
-template<typename T>
-ecl::Variable<T> ecl::Variable<T>::operator*(const T& value){
-    Variable<T> result(*this);
-    result *= value;
-    return result;
-}
-template<typename T>
-ecl::Variable<T> ecl::Variable<T>::operator/(const T& value){
-    Variable<T> result(*this);
-    result /= value;
-    return result;
-}
-
-template<typename T>
-ecl::Variable<T>::operator T&(){
-    return local_value;
-}
-
-template<typename T>
-ecl::Variable<T>::operator const T&() const{
-    return local_value;
-}
-
-template<typename T>
-ecl::Variable<T>::~Variable(){
-    clearFields();
+ecl::Buffer::~Buffer() {
+	clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Array Class Definition
+// var Class Definition
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
-void ecl::Array<T>::clearFields(){
-    if(manage == AUTO) ref = false;
-    Buffer::clearFields();
+void ecl::var<T>::copy(const var<T>& other) {
+	clear();
+
+	Buffer::copy(other);
+	value = other.value;
+	setPtr(&value);
+}
+template<typename T>
+void ecl::var<T>::move(var<T>& other) {
+	clear();
+
+	Buffer::move(other);
+	value = other.value;
+	setPtr(&value);
+
+	other.clear();
 }
 
 template<typename T>
-ecl::Array<T>::Array() : Buffer(nullptr, 0, READ){
+ecl::var<T>::var() : Buffer(nullptr, sizeof(T), ACCESS::READ_WRITE) {
+	value = T();
+}
+template<typename T>
+ecl::var<T>::var(const T& value) : var(){
+	this->value = value;
+	setPtr(&this->value);
 }
 
 template<typename T>
-ecl::Array<T>::Array(std::size_t array_size, ACCESS access) : Buffer(nullptr, array_size * sizeof(T), access){
-    this->manage = AUTO;
-    this->size = array_size;
-    data_ptr = new T[array_size];
+ecl::var<T>::var(const var<T>& other) {
+	copy(other);
+}
+template<typename T>
+ecl::var<T>& ecl::var<T>::operator=(const var<T>& other) {
+	copy(other);
+
+	return *this;
 }
 
 template<typename T>
-ecl::Array<T>::Array(const T* array, std::size_t array_size, FREE manage) : Buffer((void*)array, array_size * sizeof(T), READ){
-    this->manage = manage;
-    this->size = array_size;
+ecl::var<T>::var(var<T>&& other) : Buffer(nullptr, 0, READ){
+	move(other);
+}
+template<typename T>
+ecl::var<T>& ecl::var<T>::operator=(var<T>&& other) {
+	move(other);
+
+	return *this;
+}
+
+
+template<typename T>
+const T& ecl::var<T>::getValue() const {
+	return value;
+}
+template<typename T>
+void* ecl::var<T>::getPtr() {
+	return &value;
 }
 
 template<typename T>
-ecl::Array<T>::Array(T* array, std::size_t array_size, ACCESS access, FREE manage) : Buffer(static_cast<void*>(array), array_size * sizeof(T), access) {
-    this->manage = manage;
-    this->size = array_size;
+void ecl::var<T>::setValue(const T& value) {
+	this->value = value;
 }
 
 template<typename T>
-ecl::Array<T>::Array(const Array<T>& other) : Buffer(other){
-    clearFields();
-
-    manage = AUTO;
-    size = other.size;
-    access = other.access;
+ecl::var<T>& ecl::var<T>::operator++(int) {
+	setValue(value + 1);
+	return *this;
 }
 template<typename T>
-ecl::Array<T>& ecl::Array<T>::operator=(const Array<T>& other){
-    clearFields();
-
-    data_size = other.data_size;
-    access = other.access;
-    data_ptr = new uint8_t[data_size];
-
-    memcpy(data_ptr, other.data_ptr, data_size);
-    ref = false;
-
-    manage = AUTO;
-    size = other.size;
-    access = other.access;    
-
-    return *this;
-}
-
-template<typename T>
-ecl::Array<T>::Array(Array<T>&& other) : Buffer(std::move(other)){
-    manage = other.manage;
-    size = other.size;
-    other.manage = MANUALLY;
-
-    other.clearFields();
+ecl::var<T>& ecl::var<T>::operator--(int) {
+	setValue(value - 1);
+	return *this;
 }
 template<typename T>
-ecl::Array<T>& ecl::Array<T>::operator=(Array<T>&& other){
-    clearFields();
-
-    data_ptr = other.data_ptr;
-    data_size = other.data_size;
-    access = other.access;
-    buffer = std::move(other.buffer);
-    manage = other.manage;
-    size = other.size;
-
-    other.manage = MANUALLY;
-
-    other.clearFields();
-    return *this;
+ecl::var<T>& ecl::var<T>::operator=(const T& v) {
+	setValue(v);
+	return *this;
+}
+template<typename T>
+ecl::var<T>& ecl::var<T>::operator+=(const T& v) {
+	setValue(value + v);
+	return *this;
+}
+template<typename T>
+ecl::var<T>& ecl::var<T>::operator-=(const T& v) {
+	setValue(value - v);
+	return *this;
+}
+template<typename T>
+ecl::var<T>& ecl::var<T>::operator*=(const T& v) {
+	setValue(value * v);
+	return *this;
+}
+template<typename T>
+ecl::var<T>& ecl::var<T>::operator/=(const T& v) {
+	setValue(value / v);
+	return *this;
 }
 
 template<typename T>
-const T* ecl::Array<T>::getConstArray() const{
-    return static_cast<const T*>(data_ptr);
+ecl::var<T> ecl::var<T>::operator+(const T& v) {
+	var<T> result = value + v;
+	return result;
 }
 template<typename T>
-std::size_t ecl::Array<T>::getSize() const{
-    return size;
+ecl::var<T> ecl::var<T>::operator-(const T& v) {
+	var<T> result = value - v;
+	return result;
 }
-
 template<typename T>
-T* ecl::Array<T>::getArray(){
-    return static_cast<T*>(data_ptr);
+ecl::var<T> ecl::var<T>::operator*(const T& v) {
+	var<T> result = value * v;
+	return result;
 }
-
 template<typename T>
-T& ecl::Array<T>::operator[](std::size_t i){
-    return getArray()[i];
-}
-
-template<typename T>
-ecl::Array<T>::operator T*(){
-    return getArray();
+ecl::var<T> ecl::var<T>::operator/(const T& v) {
+	var<T> result = value / v;
+	return result;
 }
 
 template<typename T>
-ecl::Array<T>::operator const T*() const{
-    return getConstArray();
+ecl::var<T>::operator T&() {
+	return value;
+}
+template<typename T>
+ecl::var<T>::operator const T&() const {
+	return value;
 }
 
 template<typename T>
-ecl::Array<T>::~Array(){
-    clearFields();
+void ecl::var<T>::clear() {
+	Buffer::clear();
+	value.~T();
+}
+
+template<typename T>
+ecl::var<T>::~var() {
+	clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1437,7 +1279,7 @@ const std::string& ecl::Computer::getName() const{
 void ecl::Computer::send(ecl::Buffer& arg, EXEC sync) {
 	arg.createBuffer(context);
 
-	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
+	error = clEnqueueWriteBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getSize(), arg.getPtr(), 0, nullptr, nullptr);
 	checkError("Computer [send data]");
 
     if(sync == SYNC) await();
@@ -1453,7 +1295,7 @@ void ecl::Computer::receive(Buffer& arg, EXEC sync) {
 	if (!sended) throw std::runtime_error("Computer [receive]: buffer wasn't sent to computer");
 	if (arg.getAccess() == READ) throw std::runtime_error("Computer [receive]: trying to receive read-only data");
 
-	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getDataSize(), arg.getDataPtr(), 0, nullptr, nullptr);
+	error = clEnqueueReadBuffer(queue, arg.getBuffer(context), CL_FALSE, 0, arg.getSize(), arg.getPtr(), 0, nullptr, nullptr);
 	checkError("Computer [receive data]");
 
     if(sync == SYNC) await();
