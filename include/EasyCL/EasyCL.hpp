@@ -51,6 +51,8 @@ namespace ecl{
         Platform(cl_platform_id);
 
         cl_device_id getDevice(std::size_t, DEVICE) const;
+		std::size_t getDevicesCount(DEVICE) const;
+		const std::vector<cl_device_id>& getDevicesVector(DEVICE) const;
         const std::string& getName() const;
 
         std::string getPlatformInfo(cl_platform_info) const;
@@ -71,6 +73,8 @@ namespace ecl{
 		System() = delete;
         static void init();
         static const Platform& getPlatform(std::size_t);
+		static std::size_t getPlatformsCount();
+		static const std::vector<const Platform*>& getPlatformsVector();
         static void release();
     };
 
@@ -305,9 +309,13 @@ public:
             cl_context context = nullptr;
             cl_command_queue queue = nullptr;
 
+			void move(Computer&);
         public:
 			Computer() = delete;
             Computer(std::size_t, const Platform&, DEVICE);
+
+			Computer(Computer&&);
+			Computer& operator=(Computer&);
 
 			cl_device_id getDevice() const;
 			cl_context getContext() const;
@@ -330,10 +338,13 @@ public:
 
             void await();
 
+			operator cl_device_id();
+
             friend std::ostream& operator<<(std::ostream&, const Computer&);
 			friend Computer& operator<<(Computer&, Buffer&);
 			friend Computer& operator>>(Computer&, Buffer&);
 
+			void clear();
             ~Computer();
     };
 }
@@ -602,6 +613,18 @@ cl_device_id ecl::Platform::getDevice(std::size_t i, DEVICE type) const{
 const std::string& ecl::Platform::getName() const{
     return name;
 }
+std::size_t ecl::Platform::getDevicesCount(DEVICE type) const {
+	if (type == CPU) return cpus.size();
+	else if (type == GPU) return gpus.size();
+	else if (type == ACCEL) return accs.size();
+	else throw std::runtime_error("invalid device type");
+}
+const std::vector<cl_device_id>& ecl::Platform::getDevicesVector(DEVICE type) const {
+	if (type == CPU) return cpus;
+	else if (type == GPU) return gpus;
+	else if (type == ACCEL) return accs;
+	else throw std::runtime_error("invalid device type");
+}
 
 std::string ecl::Platform::getPlatformInfo(cl_platform_info info) const{
     std::size_t info_size;
@@ -693,6 +716,12 @@ const ecl::Platform& ecl::System::getPlatform(std::size_t i){
     if(!initialized) init();
     return *platforms.at(i);
 }
+std::size_t ecl::System::getPlatformsCount(){
+	return platforms.size();
+}
+const std::vector<const ecl::Platform*>& ecl::System::getPlatformsVector(){
+	return platforms;
+}
 
 void ecl::System::release(){
     for(auto* p : platforms) delete p;
@@ -717,7 +746,7 @@ void ecl::Program::copy(const Program& other) {
 }
 void ecl::Program::move(Program& other) {
 	clear();
-	source = other.source;
+	source = std::move(other.source);
 	program = std::move(other.program);
 
 	other.clear();
@@ -856,7 +885,7 @@ void ecl::Kernel::copy(const Kernel& other) {
 void ecl::Kernel::move(Kernel& other) {
 	clear();
 
-	name = other.name;
+	name = std::move(other.name);
 	kernel = std::move(other.kernel);
 
 	other.clear();
@@ -981,6 +1010,10 @@ void ecl::Buffer::move(Buffer& other) {
 	access = other.access;
 	buffer = std::move(other.buffer);
 
+	other.ptr = nullptr;
+	other.size = 0;
+	other.access = READ;
+
 	other.clear();
 }
 
@@ -1074,6 +1107,8 @@ void ecl::var<T>::move(var<T>& other) {
 	Buffer::move(other);
 	value = other.value;
 	setPtr(&value);
+
+	other.value.~T();
 
 	other.clear();
 }
@@ -1238,6 +1273,10 @@ void ecl::array<T>::move(array<T>& other) {
 	manage = other.manage;
     other.manage = MANUALLY;
 
+	other.arr = nullptr;
+	other.arr_size = 0;
+	other.manage = MANUALLY;
+
 	other.clear();
 }
 
@@ -1349,6 +1388,21 @@ ecl::array<T>::~array() {
 ///////////////////////////////////////////////////////////////////////////////
 // Computer Class Definition
 ///////////////////////////////////////////////////////////////////////////////
+void ecl::Computer::move(ecl::Computer& other) {
+	clear();
+
+	device = other.device;
+	queue = other.queue;
+	context = other.context;
+	name = std::move(other.name);
+
+	other.device = nullptr;
+	other.queue = nullptr;
+	other.context = nullptr;
+
+	other.clear();
+}
+
 ecl::Computer::Computer(std::size_t i, const Platform& platform, DEVICE dev){
     device = platform.getDevice(i, dev);
     name = platform.getDeviceInfo(i, dev, CL_DEVICE_NAME);
@@ -1360,6 +1414,13 @@ ecl::Computer::Computer(std::size_t i, const Platform& platform, DEVICE dev){
     checkError("Computer [init]");
 }
 
+ecl::Computer::Computer(Computer&& other) {
+	move(other);
+}
+ecl::Computer& ecl::Computer::operator=(Computer& other) {
+	move(other);
+	return *this;
+}
 
 void ecl::Computer::grid(const Frame& frame, const std::vector<std::size_t>& global_work_size, const std::vector<std::size_t>& local_work_size, EXEC sync){
     auto& prog = frame.prog;
@@ -1448,6 +1509,10 @@ void ecl::Computer::await(){
     checkError("Computer [await]");
 }
 
+ecl::Computer::operator cl_device_id() {
+	return device;
+}
+
 cl_device_id ecl::Computer::getDevice() const{
     return device;
 }
@@ -1527,9 +1592,25 @@ namespace ecl {
 	}
 }
 
+void ecl::Computer::clear(){
+	if (queue != nullptr) {
+		error = clFlush(queue);
+		checkError("Computer [clear]");
+
+		error = clReleaseCommandQueue(queue);
+		checkError("Computer [clear]");
+	}
+	if (context != nullptr) {
+		error = clReleaseContext(context);
+		checkError("Computer [clear]");
+	}
+
+	name = "";
+	device = nullptr;
+	queue = nullptr;
+	context = nullptr;
+}
+
 ecl::Computer::~Computer(){
-    error = clReleaseCommandQueue(queue);
-    checkError("Computer [free]");
-    error = clReleaseContext(context);
-    checkError("Computer [free]");
+	clear();
 }
