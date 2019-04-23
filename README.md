@@ -12,9 +12,9 @@ Icon made by [Freepik](https://www.flaticon.com/authors/freepik) from www.flatic
  The library is built on the original [***OpenCL 1.2 C Specification***](https://www.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf). It allows you to bypass some of the inconveniences of the original *OpenCL*, providing work with **abstractions** of different levels, provides you to bypass the **restriction of hard binding**.
 
 ## Installation
- 1) Install OpenCL library on your system
- 1) Clone the repo `$ git clone https://github.com/architector1324/EasyCL`
- 2) Copy `EasyCL.hpp` to your project
+ 1) [Install](https://github.com/architector1324/EasyCL/wiki/How-to-install-OpenCL%3F) OpenCL library on your system
+ 2) Clone the repo `$ git clone https://github.com/architector1324/EasyCL` (or just download the [lastest](https://github.com/architector1324/EasyCL/releases) header)
+ 3) Copy `EasyCL.hpp` to your project
 
 ## Hello, World
  1) Copy `EasyCL.hpp` to project folder
